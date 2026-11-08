@@ -9,7 +9,8 @@ BZL-Ent (entanglement)   → 同上，因果链路工作流（trace + fail→pas
 Agent / Plan / Analyze / Entanglement / Teams / DarkSelene → 官方原版，一字不改
 ```
 
-- 版本：**2.9.4** ｜ 许可：Apache-2.0 ｜ 平台：Breezell（VS Code 系）
+- 版本：**3.0.0** ｜ 许可：Apache-2.0 ｜ 平台：Breezell（VS Code 系）
+- 插件 id：**cniu6.breezell-purge**（自注入：一个插件即可，不依赖其他扩展）
 - 面板：侧边栏 `BZL 破甲 · 控制台`（Box 内），9 个页签
 - 真实自测：headless 单测 + 真机 selftest + 8 场景方案基准
 

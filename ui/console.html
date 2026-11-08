@@ -81,7 +81,19 @@
     <label class="sw"><input type="checkbox" id="cApprove"> 自动放行工具调用</label>
     <label class="sw" title="剥离服务端权威段占位符（⟦bz:system:*⟧）。关闭即一键回退官方权威态。"><input type="checkbox" id="cStrip"> 服务端权威段剥离</label>
     <span class="mut">轮询</span><input type="number" id="nPoll" min="1000" max="15000" step="500"><span class="mut">ms</span>
+  </div>  </div>
+  <div class="row">
+    <label class="sw" title="单插件自注入：用官方 chat.intercept 的 context 通道把 persona+堆叠+规则包注入每条消息，不依赖 breezell-offline。"><input type="checkbox" id="cSelf"> 自注入（context 通道）</label>
+    <span class="mut">预算</span><input type="number" id="nBudget" min="1000" max="20000" step="500"><span class="mut">字符</span>
+    <span class="mut">注入目标</span>
+    <select id="selTarget">
+      <option value="context">context（用户不可见，推荐）</option>
+      <option value="both">context + 用户消息</option>
+      <option value="text">只改用户消息</option>
+    </select>
+    <span class="mut" id="lastInj">—</span>
   </div>
+
   <div class="row">
     <span class="mut">当前模式</span><select id="selMode"></select>
     <span class="mut">注入位置</span>
@@ -281,6 +293,10 @@ function render(st) {
   $('cInject').checked = !!st.injectRules;
   $('cApprove').checked = !!st.autoApprove;
   $('cStrip').checked = st.stripOn !== false;
+  if($('cSelf')) $('cSelf').checked = st.selfInject !== false;
+  if($('nBudget')) $('nBudget').value = st.ctxBudget || 20000;
+  if($('selTarget')) $('selTarget').value = st.injectTarget || 'context';
+  if($('lastInj')) $('lastInj').textContent = st.lastInject ? ('最近注入 ' + st.lastInject.len + '/' + st.lastInject.cap + ' 字符 · ' + st.lastInject.mode) : '—';
   $('nPoll').value = st.pollMs || 3000;
   if (document.activeElement !== $('taTail')) $('taTail').value = st.tailText || '';
   $('mTail').textContent = (st.tailText || '').length + ' 字';
@@ -494,7 +510,10 @@ function pushSeq(mode) { post({ type: 'mode-packs', mode: mode, ids: seqOf(mode)
 function save() {
   post({ type: 'save', data: {
     enabled: $('cEnabled').checked, injectRules: $('cInject').checked, autoApprove: $('cApprove').checked,
-    pollMs: Number($('nPoll').value) || 3000, tail: $('taTail').value, stripOn: $('cStrip').checked } });
+    pollMs: Number($('nPoll').value) || 3000, tail: $('taTail').value, stripOn: $('cStrip').checked,
+    selfInject: $('cSelf') ? $('cSelf').checked : true,
+    ctxBudget: $('nBudget') ? Number($('nBudget').value) || 20000 : 20000,
+    injectTarget: $('selTarget') ? $('selTarget').value : 'context' } });
   toast('已提交…');
 }
 
@@ -508,7 +527,10 @@ $('btnSelf').onclick = () => { $('mTest').textContent = '运行中…'; post({ t
 $('btnExport').onclick = () => post({ type: 'export' });
 $('btnImport').onclick = () => post({ type: 'import' });
 $('btnReport').onclick = () => post({ type: 'openSelftest' });
-$('cEnabled').onchange = save; $('cInject').onchange = save; $('cApprove').onchange = save; $('cStrip').onchange = save;
+$('cEnabled').onchange = save; $('cInject').onchange = save; $('cApprove').onchange = save; $('cStrip').onchange = save;$('cStrip').onchange = save;
+$('cSelf').onchange = save;
+$('nBudget').onchange = save;
+$('selTarget').onchange = save;
 
 $('btnBench').onclick = () => { $('mBench').textContent = '运行中…'; post({ type: 'bench' }); };
 $('selMode').onchange = () => post({ type: 'current-mode', value: $('selMode').value });

@@ -2,6 +2,19 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.0.0
+
+**重构：单插件自注入，不再依赖 breezell-offline 与宿主补丁**
+
+- 新通道：`chat.registerSendHandler` 的官方 `SendAnswer.context`（≤20,000 字符/条，用户不可见，模型被告知来自本插件）。注入由插件自己完成，不需要 pSys 钩子、不需要改 workbench、不需要另一份扩展。
+- `dist/inject.js`：预算分配（sysBlock → tail → persona → stack），人设不够就按字符硬切，堆叠装不下的整层丢弃。
+- 人设改用 `assets/persona-core.md`（16.8k，从完整人设逐字抽取规则行 + 后继散文，未改写），因为 20k 硬上限装不下 30k 全文。
+- `syncSystem()` 在自注入模式下直接短路，**不写桥配置**，避免双注入；`bzlPurge.selfInject=false` 可切回 2.x 的桥注入。
+- 新配置：`selfInject`（默认 true）、`ctxBudget`（默认 20000）、`injectTarget`（context / both / text）。
+- 面板破甲页加自注入开关组，并显示「最近注入 N/20000 字符 · 模式」。
+- 插件 id 改为 `cniu6.breezell-purge`（原 `local.bzl-purge` 是本地安装的保留 publisher）。
+- 真机验证：`bzl-purge-lastinject.json` 记录 `len=18,167 / cap=20,000 / personaLen=16,832`，人设完整、规则块与尾注齐全；headless 15/15。
+
 ## 2.9.4
 
 **修：`strict` 档下规则包（`sysBlock` + 尾注）从未发出**
