@@ -14,6 +14,25 @@ Agent / Plan / Analyze / Entanglement / Teams / DarkSelene → 官方原版，�
 - 面板：侧边栏 `BZL 破甲 · 控制台`（Box 内），9 个页签
 - 真实自测：headless 单测 + 真机 selftest + 8 场景方案基准
 
+| 控制台 | 宿主版本实测 |
+|---|---|
+| ![控制台](docs/img/console-2.9.0.png) | ![宿主 1.4.52](docs/img/host-devpage-1.4.52.png) |
+
+> 左图为 2.9.0 界面（3.0.0 在同一页加了「自注入」开关组与「最近注入 N/20000」读数）。
+> 右图底部可见宿主 **v1.4.52**，与 [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) 记录的一致。
+
+---
+
+**文档索引**：
+
+| 文档 | 内容 |
+|---|---|
+| [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | 真实环境快照（宿主 1.4.52 / 插件 3.0.0 / 校验和 / 自注入记录）+ 一分钟排查表 |
+| [docs/INJECTION.md](docs/INJECTION.md) | 两条注入通道的代码级说明与宿主补丁锚点 |
+| [CHANGELOG.md](CHANGELOG.md) | 每版「真因 → 修法」 |
+
+**遇到不生效先看这两个文件**：[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)（真实环境快照 + 一分钟排查表）、[docs/INJECTION.md](docs/INJECTION.md)（注入链路与锚点）。
+
 ---
 
 ## 1. 它到底改了什么
@@ -83,15 +102,30 @@ Plugins › Installed › Install local .vsix   →  选 bzl-purge-2.9.4.vsix
 
 > `extensions.json` 必须是**无 BOM** 的合法 JSON，数组里出现 `null` 会让整份清单失效。
 
-## 4. 运行前提（重要）
+## 4. 注入通道：A 自注入（默认）/ B 桥注入（可选）
 
-本插件负责**拼内容 + 决定何时注入**，真正把 `systemPrompt` 塞进请求的是宿主侧的 `pSys` 钩子：
+### A. 自注入（3.0.0 默认，推荐）
+
+只用官方 API：`chat.registerSendHandler` 的 `SendAnswer.context`。
+
+| 官方约束 | 值 |
+|---|---|
+| 单条消息 context | **≤ 20,000 字符** |
+| 所有插件合计 | ≤ 50,000 字符 |
+| 处理时限 | **3 秒**（超时/抛错 → 消息原样发出） |
+| 可见性 | 聊天里看不到，`chat.read` 读不到，模型被告知来自本插件 |
+
+不依赖任何其他扩展、不需要改宿主 bundle。预算顺序：`sysBlock` → `tail` → `persona`（不够按字符硬切）→ `stack`（整层装不下就丢弃）。详见 [docs/INJECTION.md](docs/INJECTION.md)。
+
+### B. 桥注入（2.x 路径，`bzlPurge.selfInject=false`）
+
+真正把 `systemPrompt` 塞进请求的是宿主侧 `pSys` 钩子，需要三个条件同时成立：
 
 1. `breezell-offline`（3.4.x）注入的 workbench 桥——提供 `pSys / pMid / pCfg`；
 2. 模式门控补丁（`hm-live` + `hm-gate`），让原生模式不经过 `pSys`；
 3. 使用 `BZL-Ent` 还需要宿主模式白名单放行 `base: "entanglement"`。
 
-桥配置读写位置：`%APPDATA%\Breezell\breezell-offline-config.json` 的 `prompts` 段。
+桥配置位置：`%APPDATA%\Breezell\breezell-offline-config.json` 的 `prompts` 段。宿主升级会换 bundle，补丁需跟着重打；**自注入路径不受此影响**。
 
 ## 5. 控制台（Box 面板）
 
@@ -126,12 +160,14 @@ Plugins › Installed › Install local .vsix   →  选 bzl-purge-2.9.4.vsix
 ## 7. 自测
 
 ```powershell
-node tools/pack.js .\out            # 打包，打印 sha256
+node tools/snapshot.js env.json     # 采集真实环境快照（宿主/运行时/插件/桥/自注入/校验和）
+node tools/pack.js                  # 打包到 dist-vsix/，打印 size/entries/sha256
 ```
 
-- **headless**：`vm` 抠函数 + stub `vscode`，覆盖门控四态（空 / native / bzl / 其他插件）
-- **真机**：`%APPDATA%\Breezell\bzl-purge-selftest.json`（`armWhy`、`benchOk 8/8`、权限 8/8、`rulesLen`、`tailLen`）
-- **端到端**：切到 `BZL-Ent` 发一条，再切 `Agent` 发一条，两条提示词行为应明显不同
+- **自注入是否发生**：发一条消息后看 `%APPDATA%\Breezell\bzl-purge-lastinject.json` 的 `at` 是否更新、`len/cap` 多少、`dropped` 丢了哪些层
+- **权限与挂载**：`%APPDATA%\Breezell\bzl-purge-selftest.json`（`armWhy`、`benchOk 8/8`、8 项权限状态）
+- **校验和**：`product.json.checksums` 与实际 sha256 是否一致（三个根都要对；不一致 = 补丁没被加载）
+- **端到端**：切到 `BZL-Ent` 发一条，再切 `Agent` 发一条（3.x 靠总开关，2.x 靠门控）
 
 ## 8. 目录
 
@@ -145,20 +181,26 @@ ui/console.html  控制台（9 页签，单文件无外部依赖）
 ui/panel.html    聊天输入框上方面板
 modes/           三个模式的 instructions（宿主读入 <plugin_mode>）
 rules/           随插件声明注入的规则（宿主 rules 通道）
-assets/          persona-zh.md（内置人设；persona-dsh.md 不入库）
+assets/          persona-core.md（16.8k 内置人设，适配 20k 上限）
+docs/            ENVIRONMENT.md（真实环境快照 + 排查表）· INJECTION.md（注入链路）
+docs/img/        界面与宿主版本截图
 tools/pack.js    无依赖 vsix 打包器
+tools/snapshot.js 采集真实环境快照（宿主/运行时/插件/桥/自注入/校验和）
 ```
 
 ## 9. 关于人设文件
 
-仓库**不包含** `assets/persona-dsh.md`。默认人设请用内置 `assets/persona-zh.md`，或自己写一份 md 并把 `bzlPurge.personaFile` 指向它（支持任意绝对路径，支持 `.md` / `.txt`）。
+仓库**不包含** `assets/persona-dsh.md`（30,458 字完整人设）。默认用内置 `assets/persona-core.md`（16,832 字，从完整人设逐字抽取规则行 + 后继散文，未改写），因为 `SendAnswer.context` 硬上限 20,000 字符。
+
+要换自己的：写一份 md，把 `bzlPurge.personaFile` 指向绝对路径（支持 `.md` / `.txt`），注意与堆叠共享 20k 预算，超了会按字符切断。
 
 ## 10. 已知限制
 
-- 宿主每次升级热更新都会换一份 workbench，门控补丁需要跟着重打；
-- `strict` 档下系统提示词会很长（人设 30k + 堆叠 31k + 规则 1k ≈ 62.9k 字符），注意模型上下文预算；
-- `models.request` 接口对 `system` 字段有 20,000 字符上限，30k 人设走该接口会报 `system must be a string of at most 20000 characters` —— 这是宿主限制，不是插件 bug；
-- 只在 Breezell 的插件 API（`apiVersion: 1`）上验证过，不保证兼容上游 VS Code。
+- **3.x 自注入**：context 通道的权重低于 system 段；拿不到宿主当前模式（API 不暴露），原生模式与 BZL-* 只能靠总开关区分；`stripServerMarks` 需要改宿主 bundle，插件写不了程序目录。
+- **2.x 桥注入**：宿主每次热更新都会换一份 workbench，门控补丁需要跟着重打；任一校验和 MISMATCH 就整体失效。
+- `strict` 档下桥里的系统提示词很长（人设 30k + 堆叠 31k + 规则 1k ≈ 62.9k 字符），注意模型上下文预算。
+- `models.request` 对 `system` 字段有 20,000 字符上限，30k 人设走该接口会报 `system must be a string of at most 20000 characters` —— 宿主限制，不是插件 bug。
+- 只在 Breezell 插件 API（`apiVersion: 1`）+ 宿主 `1.4.52`（底座 `1.4.5`，`win32-x64`）验证过，不保证兼容上游 VS Code 或其它宿主版本。
 
 ## 11. 免责
 
