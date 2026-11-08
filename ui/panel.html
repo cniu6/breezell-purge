@@ -1,0 +1,60 @@
+<!doctype html><meta charset="utf-8">
+<style>
+:root{color-scheme:light dark}
+*{box-sizing:border-box}
+body{margin:0;font:12px/1.5 var(--vscode-font-family);color:var(--vscode-foreground);background:transparent}
+.wrap{display:flex;flex-direction:column;gap:6px;height:100%;padding:6px 8px}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.t{font-weight:600;letter-spacing:.02em}
+.pill{border:1px solid var(--vscode-panel-border);border-radius:999px;padding:0 8px;font-size:11px;opacity:.85}
+.on{color:var(--vscode-charts-green,#3fb950);border-color:currentColor}
+.off{color:var(--vscode-charts-red,#f85149);border-color:currentColor}
+label{display:flex;align-items:center;gap:5px;font-size:11px;opacity:.9}
+textarea{flex:1;width:100%;min-height:84px;resize:vertical;background:var(--vscode-input-background);color:var(--vscode-input-foreground);border:1px solid var(--vscode-input-border,transparent);border-radius:6px;padding:6px 8px;font:11px/1.5 var(--vscode-editor-font-family,monospace)}
+button{background:var(--vscode-button-background);color:var(--vscode-button-foreground);border:0;border-radius:5px;padding:3px 10px;cursor:pointer;font-size:11px}
+button.gh{background:var(--vscode-button-secondaryBackground);color:var(--vscode-button-secondaryForeground)}
+.grow{flex:1}
+.mut{opacity:.65;font-size:11px}
+</style>
+<div class="wrap">
+  <div class="row">
+    <span class="t">BZL 破甲</span>
+    <span id="state" class="pill off">未连接</span>
+    <span id="stat" class="mut"></span>
+    <span class="grow"></span>
+    <label><input id="en" type="checkbox"> 启用</label>
+    <label><input id="aa" type="checkbox"> 自动放行</label>
+    <label><input id="inj" type="checkbox"> 注入规则</label>
+  </div>
+  <div class="row"><span class="mut">破甲规则（可改，保存后立刻生效）</span><span class="grow"></span><button class="gh" id="reset">恢复默认</button><button id="save">保存并启用</button></div>
+  <textarea id="rules" spellcheck="false" placeholder="破甲规则全文…"></textarea>
+  <div class="row"><span class="mut">尾注</span></div>
+  <textarea id="tail" style="min-height:42px" spellcheck="false" placeholder="追加到每条消息末尾…"></textarea>
+</div>
+<script>
+const vscode = acquireVsCodeApi();
+let st = { enabled:true, autoApprove:true, injectRules:true, rulesText:'', tail:'', convs:0, perms:[], breezell:false };
+const $ = id => document.getElementById(id);
+function paint(){
+  $('state').textContent = st.breezell ? (st.enabled ? '破甲：开' : '破甲：关') : '非 Breezell / 未登录';
+  $('state').className = 'pill ' + (st.breezell && st.enabled ? 'on' : 'off');
+  $('stat').textContent = '会话 ' + (st.convs||0) + ' · 权限 ' + ((st.perms||[]).length) + ' · ' + (st.breezell?'vscode.breezell 可用':'无 API');
+  $('en').checked = !!st.enabled; $('aa').checked = !!st.autoApprove; $('inj').checked = !!st.injectRules;
+  if(document.activeElement !== $('rules')) $('rules').value = st.rulesText || '';
+  if(document.activeElement !== $('tail')) $('tail').value = st.tail || '';
+}
+addEventListener('message', e => {
+  const d = e.data;
+  if (d && d.type === 'breezell.surface.context') { vscode.postMessage({ __breezellSurfaceReady:true }); vscode.postMessage({ __breezellSurfaceHeight: 320 }); return; }
+  if (d && d.type === 'state') { st = Object.assign(st, d.state||{}); paint(); }
+});
+$('save').onclick = () => {
+  st.enabled = $('en').checked; st.autoApprove = $('aa').checked; st.injectRules = $('inj').checked;
+  st.rulesText = $('rules').value; st.tail = $('tail').value;
+  vscode.postMessage({ type:'save', state:{ enabled:st.enabled, autoApprove:st.autoApprove, injectRules:st.injectRules, rulesText:st.rulesText, tail:st.tail } });
+};
+$('reset').onclick = () => vscode.postMessage({ type:'reset' });
+$('en').onchange = $('aa').onchange = $('inj').onchange = () => $('save').click();
+paint();
+vscode.postMessage({ __breezellSurfaceReady:true });
+</script>

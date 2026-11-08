@@ -1,0 +1,52 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: syntax check
+        run: |
+          for f in dist/*.js tools/*.js; do node --check "$f"; done
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'));console.log('package.json ok')"
+
+      - name: build vsix
+        id: build
+        run: |
+          node tools/pack.js dist-vsix | tee pack.log
+          SHA=$(grep -o 'sha256 [0-9a-f]*' pack.log | awk '{print $2}')
+          VER=$(node -p "require('./package.json').version")
+          NAME=$(node -p "require('./package.json').name")
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "ver=$VER" >> "$GITHUB_OUTPUT"
+          echo "file=dist-vsix/$NAME-$VER.vsix" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: dist-vsix/*.vsix
+          if-no-files-found: error
+
+      - name: release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.file }}" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "sha256: \`${{ steps.build.outputs.sha }}\`" \
+            --verify-tag || gh release upload "$GITHUB_REF_NAME" "${{ steps.build.outputs.file }}" --clobber

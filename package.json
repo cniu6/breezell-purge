@@ -1,0 +1,359 @@
+{
+  "name": "bzl-purge",
+  "displayName": "BZL 破甲",
+  "description": "Breezell 模式级提示词工程插件：BZL-CTF / BZL-Run / BZL-Ent 三模式下注入人设+8层堆叠+规则包，官方原生模式保持原版",
+  "version": "2.9.4",
+  "publisher": "local",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "breezell": {
+    "apiVersion": 1,
+    "permissions": [
+      "chat.intercept",
+      "chat.read",
+      "chat.events",
+      "chat.approve",
+      "chat.send",
+      "models.request",
+      "agent.hooks",
+      "ui.contribute"
+    ],
+    "source": "open"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "bzlPurge.toggle",
+        "title": "破甲：开/关",
+        "category": "BZL 破甲"
+      },
+      {
+        "command": "bzlPurge.status",
+        "title": "破甲：状态与自测",
+        "category": "BZL 破甲"
+      },
+      {
+        "command": "bzlPurge.reset",
+        "title": "破甲：恢复默认规则",
+        "category": "BZL 破甲"
+      },
+      {
+        "command": "bzlPurge.grant",
+        "title": "破甲：授予权限",
+        "category": "BZL 破甲"
+      },
+      {
+        "command": "bzlPurge.console",
+        "title": "破甲：打开控制台",
+        "category": "BZL 破甲"
+      },
+      {
+        "title": "破甲：真实调用实测",
+        "category": "BZL 破甲",
+        "command": "bzlPurge.test"
+      },
+      {
+        "title": "破甲：同步 system 提示词块",
+        "category": "BZL 破甲",
+        "command": "bzlPurge.sync"
+      },
+      {
+        "title": "破甲：切换模式",
+        "category": "BZL 破甲",
+        "command": "bzlPurge.mode"
+      },
+      {
+        "title": "破甲：复制任务上下文前言",
+        "category": "BZL 破甲",
+        "command": "bzlPurge.ctx"
+      },
+      {
+        "command": "bzlPurge.hostmode",
+        "title": "BZL: 同步宿主模式（内部）"
+      }
+    ],
+    "breezell": {
+      "launcher": {
+        "command": "bzlPurge.console",
+        "sidebar": true
+      },
+      "rules": [
+        "rules/purge.md"
+      ],
+      "buttons": [
+        {
+          "id": "purgeToggle",
+          "slot": "chat.input.toolbar",
+          "title": "破甲",
+          "icon": "flame",
+          "command": "bzlPurge.toggle",
+          "order": 0
+        }
+      ],
+      "pages": [
+        {
+          "id": "purgePanel",
+          "title": "破甲面板",
+          "entry": "ui/panel.html",
+          "slot": "chat.input.above",
+          "height": 320
+        }
+      ],
+      "options": {
+        "title": "BZL 破甲",
+        "items": [
+          {
+            "setting": "bzlPurge.enabled",
+            "title": "启用破甲"
+          },
+          {
+            "setting": "bzlPurge.autoApprove",
+            "title": "自动放行工具调用"
+          },
+          {
+            "setting": "bzlPurge.injectRules",
+            "title": "随每条消息注入规则"
+          },
+          {
+            "setting": "bzlPurge.tail",
+            "title": "尾注（追加到每条消息末尾）"
+          },
+          {
+            "setting": "bzlPurge.injectMode",
+            "title": "注入位置（system/用户消息/两者）"
+          },
+          {
+            "setting": "bzlPurge.currentMode",
+            "title": "当前破甲模式"
+          },
+          {
+            "setting": "bzlPurge.modePacks",
+            "title": "每模式方案序列（控制台里拖动）"
+          }
+        ]
+      },
+      "ui": {
+        "modes": [
+          {
+            "id": "bzl-ctf",
+            "title": "BZL-CTF",
+            "description": "执行型 CTF/渗透口径",
+            "base": "agent",
+            "icon": "beaker",
+            "instructions": "modes/ctf-agent.md"
+          },
+          {
+            "id": "bzl-run",
+            "title": "BZL-Run",
+            "description": "不确认，直接做：执行型，先动手后汇报",
+            "base": "agent",
+            "icon": "play",
+            "instructions": "modes/run.md"
+          },
+          {
+            "id": "bzl-ent",
+            "title": "BZL-Ent",
+            "description": "因果工作流：trace 记录 + fail→pass 验证",
+            "base": "entanglement",
+            "icon": "symbol-parameter",
+            "instructions": "modes/ent.md"
+          }
+        ]
+      }
+    },
+    "configuration": {
+      "title": "BZL 破甲",
+      "properties": {
+        "bzlPurge.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "总开关：关掉后不再注入、不再自动放行"
+        },
+        "bzlPurge.autoApprove": {
+          "type": "boolean",
+          "default": true,
+          "description": "自动批准等待中的工具调用"
+        },
+        "bzlPurge.injectRules": {
+          "type": "boolean",
+          "default": true,
+          "description": "把「破甲规则」拼进每条用户消息"
+        },
+        "bzlPurge.rulesText": {
+          "type": "string",
+          "default": "",
+          "description": "破甲规则全文（留空用内置默认）",
+          "editPresentation": "multiline"
+        },
+        "bzlPurge.tail": {
+          "type": "string",
+          "default": "",
+          "description": "尾注（追加在消息末尾）",
+          "editPresentation": "multiline"
+        },
+        "bzlPurge.stripServerMarks": {
+          "type": "boolean",
+          "default": true,
+          "description": "破甲开关：剥离服务端权威段占位符（⟦bz:system:*⟧）。关闭即恢复官方权威约束"
+        },
+        "bzlPurge.pollMs": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "maximum": 15000,
+          "description": "自动放行轮询间隔"
+        },
+        "bzlPurge.openConsoleOnStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "启动后自动打开控制台（自测用）"
+        },
+        "bzlPurge.packs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "base",
+            "eng",
+            "recon",
+            "report"
+          ],
+          "description": "启用的规则包 id（顺序按内置 order）"
+        },
+        "bzlPurge.packTexts": {
+          "type": "object",
+          "default": {},
+          "description": "规则包的自定义正文（面板里编辑后写这里，空则用内置）"
+        },
+        "bzlPurge.benchOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "打开控制台时自动跑一次方案测试（自测用）"
+        },
+        "bzlPurge.modePacks": {
+          "type": "object",
+          "default": {},
+          "description": "每个模式自己的方案序列 {modeId:[packId...]}，顺序即注入顺序"
+        },
+        "bzlPurge.currentMode": {
+          "type": "string",
+          "default": "bzl-ctf",
+          "enum": [
+            "bzl-ctf",
+            "bzl-run",
+            "bzl-ent"
+          ],
+          "description": "当前生效的破甲模式（决定注入哪套方案序列）"
+        },
+        "bzlPurge.injectMode": {
+          "type": "string",
+          "default": "both",
+          "enum": [
+            "system",
+            "user",
+            "both"
+          ],
+          "description": "注入位置：system=写进系统提示词块；user=贴在用户消息；both=两处都写"
+        },
+        "bzlPurge.probeText": {
+          "type": "string",
+          "default": "",
+          "description": "真实调用实测用的探针文本（留空用内置）",
+          "editPresentation": "multiline"
+        },
+        "bzlPurge.realtestOnStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "启动后自动跑一次真实调用实测（自测用，会消耗额度）"
+        },
+        "bzlPurge.promptMode": {
+          "type": "string",
+          "enum": [
+            "append",
+            "replace",
+            "replace-hard",
+            "strict"
+          ],
+          "default": "strict",
+          "description": "注入档位：append 叠加 / replace 全丢 / replace-hard 留工具段 / strict 最纯",
+          "enumDescriptions": [
+            "append：人设/堆叠 + 官方整段（对照基线）",
+            "replace：丢掉官方整段，只发人设+堆叠（当前默认）",
+            "replace-hard：切掉官方身份句但保留工具段落（pi-purge 的 replace 语义）",
+            "strict：只发人设+堆叠，连 extraBlock 都不发（pi-purge 的 strict 语义）"
+          ]
+        },
+        "bzlPurge.seed": {
+          "type": "string",
+          "default": "",
+          "description": "replace 档位下贴在系统提示词最前的一句话（<=200 字）"
+        },
+        "bzlPurge.persona": {
+          "type": "string",
+          "default": "",
+          "description": "replace 档位下作为 systemPrompt 注入的人设正文（留空用内置 assets/persona-zh.md）"
+        },
+        "bzlPurge.stackOrder": {
+          "type": "array",
+          "default": [],
+          "description": "系统提示词堆叠顺序（层 id 数组）"
+        },
+        "bzlPurge.stackOff": {
+          "type": "array",
+          "default": [],
+          "description": "被关闭的层 id"
+        },
+        "bzlPurge.stackText": {
+          "type": "object",
+          "default": {},
+          "description": "各层自定义正文（id → 文本）"
+        },
+        "bzlPurge.personaFile": {
+          "type": "string",
+          "default": "",
+          "description": "人设文件绝对路径（整段替换第 1 层 id 正文）"
+        },
+        "bzlPurge.modeSource": {
+          "type": "object",
+          "default": {},
+          "description": "模式 → 记忆蒸馏模型来源绑定 {modeId:{source:'endpoint|provider|none',provider,model}}，模式切换自动跟随"
+        },
+        "bzlPurge.ctxDraft": {
+          "type": "object",
+          "default": {},
+          "description": "任务上下文模板的填空草稿 {tplId:{k:v}}"
+        },
+        "bzlPurge.hostMode": {
+          "type": "string",
+          "default": "",
+          "description": "宿主当前模式（由模式选择器自动写入，勿手改）"
+        }
+      }
+    }
+  },
+  "keywords": [
+    "breezell",
+    "prompt",
+    "mode",
+    "plugin",
+    "vsix"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cniu6/breezell-purge.git"
+  }
+}

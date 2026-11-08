@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>BZL 破甲 · 控制台</title>
+<style>
+  :root{ --bd: var(--vscode-panel-border,#333); --fg: var(--vscode-foreground,#ddd); --bg: var(--vscode-editor-background,#1e1e1e);
+         --mut: var(--vscode-descriptionForeground,#999); --acc: var(--vscode-button-background,#0e639c); --acc2: var(--vscode-button-secondaryBackground,#3a3d41);
+         --ok:#3fb950; --warn:#d29922; --bad:#f85149; }
+  *{box-sizing:border-box}
+  body{margin:0;font:13px/1.55 var(--vscode-font-family,system-ui);color:var(--fg);background:var(--bg)}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bd);position:sticky;top:0;background:var(--bg);z-index:5;flex-wrap:wrap}
+  header h1{font-size:14px;margin:0;font-weight:600}
+  .pill{padding:1px 8px;border-radius:10px;font-size:11px;border:1px solid var(--bd)}
+  .pill.on{color:#fff;background:var(--ok);border-color:var(--ok)}
+  .pill.off{color:#fff;background:var(--bad);border-color:var(--bad)}
+  .pill.mid{color:#000;background:var(--warn);border-color:var(--warn)}
+  nav{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--bd);position:sticky;top:47px;background:var(--bg);z-index:4;flex-wrap:wrap}
+  nav button{background:transparent;border:0;color:var(--mut);padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;font:inherit}
+  nav button.on{color:var(--fg);border-bottom-color:var(--acc)}
+  section{display:none;padding:14px}
+  section.on{display:block}
+  .row{display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap}
+  .grow{flex:1}
+  .card{border:1px solid var(--bd);border-radius:6px;padding:10px 12px;margin:10px 0}
+  .card h3{margin:0 0 6px;font-size:12px;color:var(--mut);font-weight:600}
+  label.sw{display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+  input[type=checkbox]{accent-color:#3fb950;width:15px;height:15px}
+  input[type=number]{width:90px;background:var(--vscode-input-background,#3c3c3c);color:var(--fg);border:1px solid var(--bd);border-radius:4px;padding:3px 6px}
+  textarea{width:100%;min-height:140px;resize:vertical;background:var(--vscode-input-background,#3c3c3c);color:var(--fg);border:1px solid var(--bd);border-radius:4px;padding:8px;font:12px/1.5 ui-monospace,Consolas,monospace}
+  button.b{background:var(--acc);color:#fff;border:0;border-radius:4px;padding:5px 12px;cursor:pointer;font:inherit}
+  button.b.s{background:var(--acc2)}
+  button.b.tiny{padding:3px 9px;font-size:12px}
+  pre{background:var(--vscode-textCodeBlock-background,#252526);border:1px solid var(--bd);border-radius:4px;padding:10px;overflow:auto;max-height:320px;font:12px/1.5 ui-monospace,Consolas,monospace;white-space:pre-wrap}
+  table{width:100%;border-collapse:collapse}
+  td,th{text-align:left;padding:5px 8px;border-bottom:1px solid var(--bd);font-weight:400;vertical-align:top}
+  th{color:var(--mut);font-size:11px}
+  .mut{color:var(--mut)} .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:940px){ .grid2{grid-template-columns:1fr} }
+  code{background:rgba(255,255,255,.06);padding:0 4px;border-radius:3px}
+  select{background:var(--vscode-dropdown-background,#3c3c3c);color:var(--fg);border:1px solid var(--bd);border-radius:4px;padding:3px 6px}
+  .plist{list-style:none;margin:6px 0;padding:0}
+  .plist li{display:flex;align-items:center;gap:8px;border:1px solid var(--bd);border-radius:5px;padding:5px 8px;margin:4px 0;background:rgba(255,255,255,.03);cursor:grab}
+  .plist li.drag{opacity:.4;border-style:dashed}
+  .plist li.over{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset}
+  .plist .idx{width:18px;color:var(--mut);font-variant-numeric:tabular-nums}
+  .plist .h{color:var(--mut);cursor:grab;user-select:none}
+  .plist .nm{flex:1}
+  .badge{font-size:11px;padding:0 6px;border-radius:9px;border:1px solid var(--bd);color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+  <h1>BZL 破甲 · 控制台</h1>
+  <span id="pEnabled" class="pill off">破甲 OFF</span>
+  <span id="pArm" class="pill off">未挂载</span>
+  <span id="pVer" class="pill">v-</span>
+  <span class="grow"></span>
+  <span id="pHead" class="mut">规则 -</span>
+  <span id="pConv" class="mut">会话 -</span>
+  <button class="b s" id="btnRefresh">刷新</button>
+</header>
+
+<nav>
+  <button class="on" data-t="main">破甲</button>
+  <button data-t="stack">堆叠</button>
+  <button data-t="modes">模式</button>
+  <button data-t="packs">规则库</button>
+  <button data-t="ctx">上下文</button>
+  <button data-t="live">实测</button>
+  <button data-t="bench">方案测试</button>
+  <button data-t="perm">权限</button>
+  <button data-t="test">自测 / 导出</button>
+</nav>
+
+<section class="on" id="s-main">
+  <div class="row">
+    <label class="sw"><input type="checkbox" id="cEnabled"> 启用破甲</label>
+    <label class="sw"><input type="checkbox" id="cInject"> 注入执行口径</label>
+    <label class="sw"><input type="checkbox" id="cApprove"> 自动放行工具调用</label>
+    <label class="sw" title="剥离服务端权威段占位符（⟦bz:system:*⟧）。关闭即一键回退官方权威态。"><input type="checkbox" id="cStrip"> 服务端权威段剥离</label>
+    <span class="mut">轮询</span><input type="number" id="nPoll" min="1000" max="15000" step="500"><span class="mut">ms</span>
+  </div>
+  <div class="row">
+    <span class="mut">当前模式</span><select id="selMode"></select>
+    <span class="mut">注入位置</span>
+    <select id="selInject">
+      <option value="both">system + 用户消息（both）</option>
+      <option value="system">只进 system 提示词（不改用户消息）</option>
+      <option value="user">只进用户消息（旧行为）</option>
+    </select>
+    <span class="mut">注入档位</span>
+    <select id="selPmode">
+      <option value="append">append：官方前缀 + 我的块（默认）</option>
+      <option value="replace">replace：丢掉官方前缀，只留人设 + 块</option>
+      <option value="replace-hard">replace-hard：人设 + 块，丢弃官方前缀且不加常规说明</option>
+      <option value="strict">strict：只发人设 + 堆叠（extraBlock 也不发）</option>
+    </select>
+    <span class="mut" id="mSys"></span>
+    <span class="grow"></span>
+    <button class="b s tiny" id="btnSyncSys">同步 system 块</button> <button class="b s tiny" id="btnFix" title="重新挂载（arm）+ 重写桥配置 + 刷新自检">修复挂载</button>
+  </div>
+  <div class="card">
+    <h3>system 内置提示词块（写进桥配置 prompts.extraBlock → 进系统提示词）</h3>
+    <pre id="preSys">（未加载）</pre>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>Seed（替换档位时贴在系统提示词最前，<=200 字）</h3>
+      <textarea id="taSeed" spellcheck="false" style="min-height:80px"></textarea>
+      <div class="row"><span class="mut" id="mSeed"></span><span class="grow"></span>
+        <button class="b s tiny" id="btnSeedSave">保存 seed</button></div>
+    </div>
+    <div class="card">
+      <h3>人设（replace 档位下作为 systemPrompt 注入）</h3>
+      <textarea id="taPersona" spellcheck="false" style="min-height:150px"></textarea>
+      <div class="row"><span class="mut" id="mPersona"></span><span class="grow"></span>
+        <button class="b s tiny" id="btnPersonaSave">保存人设</button>
+        <button class="b s tiny" id="btnPersonaReset">恢复内置</button></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>注入链（每条用户消息发送前拼装）</h3>
+    <table><thead><tr><th>环节</th><th>来源</th><th>落点</th><th>开关</th></tr></thead><tbody id="tbChain"></tbody></table>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>头部：启用的规则包（自动拼接）</h3>
+      <pre id="preHead">（未加载）</pre>
+      <div class="row"><span class="mut" id="mHead"></span></div>
+    </div>
+    <div class="card">
+      <h3>尾注（拼在消息之后）</h3>
+      <textarea id="taTail" spellcheck="false"></textarea>
+      <div class="row"><span class="mut" id="mTail"></span><span class="grow"></span>
+        <button class="b s tiny" id="btnDefTail">载入默认</button></div>
+    </div>
+  </div>
+  <div class="row">
+    <button class="b" id="btnSave">保存并生效</button>
+    <button class="b s" id="btnPreview">预览拼装结果</button>
+    <button class="b s" id="btnReset">恢复默认</button>
+    <span class="mut" id="mSave"></span>
+  </div>
+  <div class="card"><h3>注入效果预览</h3><pre id="prePreview">（点「预览拼装结果」）</pre></div>
+
+  <div class="card" id="ctxCard">
+    <h3>任务上下文 · 授权前言生成</h3>
+    <div class="mut">实测依据：裸请求必拒，带范围/授权框架的请求多数直接过。选模板 → 填空 → 复制，粘贴到聊天开头发送。</div>
+    <div class="row" style="margin-top:6px">
+      <select id="ctxTpl"><option value="">（加载中…）</option></select>
+      <button class="b s" id="btnCtxCopy">生成并复制</button>
+      <button class="b s" id="btnCtxSave">保存填空</button>
+      <span class="mut" id="mCtx"></span>
+    </div>
+    <div id="ctxFields" class="grid2" style="margin-top:6px"></div>
+    <pre id="preCtx" class="mut" style="margin-top:6px">（选择模板后自动生成预览）</pre>
+  </div>
+</section>
+
+<section id="s-stack">
+  <div class="card">
+    <h3>系统提示词堆叠（开关 + 拖动排序，实时写进桥）</h3>
+    <div class="mut">每层是一个独立段落：勾选 = 参与合成，☰ 拖动 = 改顺序，前面的层权重更高、后面的层更靠近结尾。合成结果按 <b>注入档位</b> 落地：<code>replace</code> 写 <code>prompts.systemPrompt</code>，<code>append</code> 写 <code>prompts.extraBlock</code>。</div>
+    <div class="row" style="margin:8px 0"><span class="mut" id="mStack"></span><span class="grow"></span>
+      <button class="b s tiny" id="btnStackSync">立即写桥</button>
+      <button class="b s tiny" id="btnStackAllOn">全开</button>
+      <button class="b s tiny" id="btnPersonaPick">载入人设文件…</button>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <h3>层列表</h3>
+      <ul class="plist" id="stackList"></ul>
+    </div>
+    <div class="card">
+      <h3>编辑选中层 <span class="mut" id="mStackSel">（未选）</span></h3>
+      <textarea id="taStack" spellcheck="false" style="min-height:220px"></textarea>
+      <div class="row"><span class="mut" id="mStackLen"></span><span class="grow"></span>
+        <button class="b s tiny" id="btnStackSave">保存本层</button>
+        <button class="b s tiny" id="btnStackReset">恢复默认</button></div>
+    </div>
+  </div>
+  <div class="card"><h3>人设文件（可选，整段替换第 1 层 <code>id</code> 的正文）</h3>
+    <div class="mut">填本地 .md/.txt 绝对路径，点载入即读入并写桥。适合把 2 万–3 万字的外部人设（如 dsh-purge 默认提示词）直接接进来。</div>
+    <div class="row" style="margin:8px 0"><input id="inPersonaFile" placeholder="C:\path\persona.md" style="flex:1" /><button class="b s tiny" id="btnPersonaLoad">载入</button></div>
+    <div class="mut" id="mPersonaFile"></div>
+  </div>
+  <div class="card"><h3>合成结果预览（就是最终 system 提示词正文）</h3><pre id="preStack">（未加载）</pre></div>
+</section>
+
+<section id="s-modes">
+  <div class="card">
+    <h3>模式底座与体积</h3>
+    <div class="mut">官方可选底座只有 <code>normal / plan / analyze / agent</code>。本插件两条模式都基于 <b>agent</b> 的底座（BZL-Run 用 plan 底座），指令独立成文件，随插件走。</div>
+    <table style="margin-top:8px"><thead><tr><th>模式</th><th>底座</th><th>说明</th><th>指令</th></tr></thead><tbody id="tbModes"></tbody></table>
+  </div>
+  <div id="modeList"></div>
+</section>
+
+<section id="s-packs">
+  <div class="row"><span class="mut" id="mPacks"></span><span class="grow"></span>
+    <button class="b" id="btnPacksSaveAll">保存全部改动</button></div>
+  <div class="grid2" id="packList"></div>
+</section>
+
+<section id="s-live">
+  <div class="card">
+    <h3>真实调用测试（会真的发网络请求 / 真的发一条对话）</h3>
+    <div class="mut">A 裸请求（无注入）→ B system 注入 → C system+用户侧 → D 应用链路真实对话。判定：回复里出现拒绝话术 = 未破甲。</div>
+    <textarea id="taProbe" spellcheck="false" style="min-height:90px"></textarea>
+    <div class="row">
+      <button class="b" id="btnReal">开始实测</button>
+      <button class="b s" id="btnProbeSave">保存探针</button>
+      <label class="sw"><input type="checkbox" id="cTestOnStart"> 启动时自动跑一次</label>
+      <span class="mut" id="mLive"></span>
+    </div>
+  </div>
+  <div class="card"><h3>四步结果</h3><div id="liveWrap" class="mut">（未运行）</div></div>
+  <div class="card"><h3>原始记录</h3><pre id="preLive">（未运行）</pre></div>
+</section>
+
+<section id="s-bench">
+  <div class="row">
+    <button class="b" id="btnBench">跑方案测试（8 个场景）</button>
+    <span class="mut" id="mBench">用当前规则包 + 模式骨架做本地 dry-run，不调用模型</span>
+  </div>
+  <div class="card"><h3>结果</h3><div id="benchWrap" class="mut">（未运行）</div></div>
+  <div class="card"><h3>样例（第一个场景的注入全文前 400 字）</h3><pre id="preSample" class="mut">（未运行）</pre></div>
+</section>
+
+<section id="s-perm">
+  <div class="card">
+    <h3>权限状态</h3>
+    <table><thead><tr><th>权限</th><th>状态</th><th>作用</th></tr></thead><tbody id="tbPerm"></tbody></table>
+  </div>
+  <div class="row"><button class="b" id="btnGrant">一键授予 / 重新检测</button><span class="mut" id="mGrant"></span></div>
+</section>
+
+<section id="s-test">
+  <div class="row">
+    <button class="b" id="btnSelf">跑一次自测</button>
+    <button class="b s" id="btnExport">导出配置…</button>
+    <button class="b s" id="btnImport">导入配置…</button>
+    <button class="b s" id="btnReport">打开自测文件</button>
+    <span class="mut" id="mTest"></span>
+  </div>
+  <div class="card"><h3>自测结果</h3><pre id="preSelf">（未运行）</pre></div>
+  <div class="card"><h3>配置 JSON（只读）</h3><pre id="preCfg"></pre></div>
+</section>
+
+<script>
+const vscode = acquireVsCodeApi();
+const $ = id => document.getElementById(id);
+let ST = null, BENCH = null;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('on', s.id === 's-' + b.dataset.t));
+});
+function post(m) { vscode.postMessage(m); }
+function toast(t) { $('mSave').textContent = t; }
+
+function render(st) {
+  ST = st;
+  const p = st.presets || { packs: [], modes: [], scenarios: [], limits: { rules: 8000, msg: 20000 } };
+  const onPacks = p.packs.filter(x => x.on);
+  const headLen = p.headLen || 0;
+
+  $('pEnabled').className = 'pill ' + (st.enabled ? 'on' : 'off');
+  $('pEnabled').textContent = st.enabled ? '破甲 ON' : '破甲 OFF';
+  $('pArm').className = 'pill ' + (st.armed ? 'on' : 'off');
+  $('pArm').textContent = st.armed ? '已挂载' : ('未挂载 · ' + (st.armWhy || '?'));
+  $('pVer').textContent = 'v' + (st.version || '-');
+  $('pHead').textContent = '规则 ' + headLen + ' / ' + p.limits.rules + ' 字';
+  $('pConv').textContent = '会话 ' + (st.conversations == null ? '-' : st.conversations);
+
+  $('cEnabled').checked = !!st.enabled;
+  $('cInject').checked = !!st.injectRules;
+  $('cApprove').checked = !!st.autoApprove;
+  $('cStrip').checked = st.stripOn !== false;
+  $('nPoll').value = st.pollMs || 3000;
+  if (document.activeElement !== $('taTail')) $('taTail').value = st.tailText || '';
+  $('mTail').textContent = (st.tailText || '').length + ' 字';
+  $('preHead').textContent = onPacks.map(x => x.text).join('\n\n') || '（没有启用任何规则包）';
+  $('mHead').textContent = '已启用 ' + onPacks.length + ' / ' + p.packs.length + ' 个包 · ' + headLen + ' 字';
+
+  $('tbChain').innerHTML = [
+    ['1', 'contributes.breezell.rules（rules/purge.md，常驻）', 'AI 顶层指令', '始终'],
+    ['2', 'ui.modes 骨架（modes/*.md）', '选中该模式时的角色/工作流', '模式下拉'],
+    ['3', '规则包 ' + onPacks.length + ' 个', '每条用户消息的头部', st.injectRules ? 'ON' : 'OFF'],
+    ['4', '尾注', '每条用户消息的末尾', (st.tailText || '').trim() ? 'ON' : 'OFF'],
+    ['5', 'chat.approve 轮询', 'awaitingApproval 自动放行', st.autoApprove ? 'ON' : 'OFF']
+  ].map(r => '<tr><td>' + r[0] + '</td><td class="mut">' + esc(r[1]) + '</td><td>' + esc(r[2]) + '</td><td>' + esc(r[3]) + '</td></tr>').join('');
+
+  $('tbModes').innerHTML = p.modes.map(m =>
+    '<tr><td><b>' + esc(m.title) + '</b><div class="mut">' + esc(m.id) + '</div></td><td>' + esc(m.base) +
+    '</td><td class="mut">' + esc(m.desc) + '</td><td>' + m.len + ' 字' + (m.len > 8000 ? ' <span class="bad">超限</span>' : '') + '</td></tr>').join('');
+
+  $('selMode').innerHTML = p.modes.map(m => `<option value="${esc(m.id)}"${st.currentMode === m.id ? ' selected' : ''}>${esc(m.title)}（${esc(m.base)}）</option>`).join('');
+  $('selInject').value = st.injectMode || 'both';
+  $('selPmode').value = st.promptMode || 'append';
+  if (document.activeElement !== $('taSeed')) $('taSeed').value = st.seed || '';
+  $('mSeed').textContent = (st.seed || '').length + ' 字';
+  if (document.activeElement !== $('taPersona')) $('taPersona').value = st.persona || '';
+  $('mPersona').textContent = (st.persona || '').length + ' 字' + ((st.promptMode || 'append') === 'append' ? '（当前档位不用人设）' : '');
+  $('mSys').textContent = 'system 块 ' + (st.sysLen || 0) + ' 字';
+  $('preSys').textContent = st.sysBlock || (st.injectMode === 'user' ? '（当前注入位置 = 只进用户消息，system 块未启用）' : '（空）');
+
+  $('modeList').innerHTML = p.modes.map(m => {
+    const inSeq = (m.seq || []).map(id => ({ id: id, title: (p.packs.filter(x => x.id === id)[0] || {}).title || id }));
+    const rest = p.packs.filter(x => (m.seq || []).indexOf(x.id) < 0);
+    return `
+    <div class="card">
+      <h3>${esc(m.title)} · ${esc(m.base)} 底座 · <span class="mut">${esc(m.file)}</span>
+        <span class="badge">${esc(m.id)}</span>${st.currentMode === m.id ? ' <span class="ok">当前模式</span>' : ''}</h3>
+      <div class="mut">${esc(m.desc)}</div>
+      <div class="row" style="margin:6px 0 2px">
+        <b>方案序列</b>
+        <span class="mut">拖动排序 · 勾选启停 · × 移除 · 序列连续注入，前面的权重更高</span>
+      </div>
+      <ul class="plist" data-mode="${esc(m.id)}">
+        ${inSeq.map((it, i) => `<li draggable="true" data-id="${esc(it.id)}">
+          <span class="h">☰</span><span class="idx">${i + 1}</span>
+          <input type="checkbox" checked data-seq="${esc(m.id)}">
+          <span class="nm">${esc(it.title)}<span class="mut"> · ${esc(it.id)}</span></span>
+          <button class="b s tiny" data-act="seq-del" data-mode="${esc(m.id)}" data-id="${esc(it.id)}">×</button>
+        </li>`).join('') || '<li class="mut" style="cursor:default">（空序列，下面添加）</li>'}
+      </ul>
+      <div class="row">
+        <select data-addmode="${esc(m.id)}"><option value="">＋ 添加方案…</option>${rest.map(x => `<option value="${esc(x.id)}">${esc(x.title)}（${esc(x.id)}）</option>`).join('')}</select>
+        <button class="b s tiny" data-act="seq-add" data-mode="${esc(m.id)}">加入</button>
+        <button class="b s tiny" data-act="seq-reset" data-mode="${esc(m.id)}">恢复内置序列</button>
+        <span class="mut">合计 ${m.headLen || 0} 字${m.isCustomSeq ? ' · <span class="warn">已自定义</span>' : ' · 内置序列'}</span>
+      </div>
+      <textarea id="mt_${esc(m.id)}" spellcheck="false">${esc(m.text)}</textarea>
+      <div class="row"><span class="mut">模式指令 ${m.len} 字 / 上限 8000 · 改完需「重载窗口」生效${m.isCustom ? ' · <span class="warn">已自定义</span>' : ''}</span>
+        <span class="grow"></span>
+        <button class="b tiny" data-act="mode-save" data-id="${esc(m.id)}">保存指令</button>
+        <button class="b s tiny" data-act="mode-reset" data-id="${esc(m.id)}">恢复内置</button>
+      </div>
+      <div class="row" style="border-top:1px solid var(--bd,#333);padding-top:6px;margin-top:6px">
+        <b>模型来源</b><span class="mut">（记忆蒸馏用；模式切换自动跟随）</span>
+        <select data-ms-kind="${esc(m.id)}">${["endpoint","provider","none"].map(k => `<option value="${k}">${k === "endpoint" ? "自定义端点" : k === "provider" ? "Breezell provider" : "跟随官方"}</option>`).join("")}</select>
+        <select data-ms-prov="${esc(m.id)}" style="display:none"></select>
+        <select data-ms-model="${esc(m.id)}" style="display:none"></select>
+        <button class="b s tiny" data-act="ms-save" data-id="${esc(m.id)}">保存绑定</button>
+        <span class="mut" data-ms-note="${esc(m.id)}"></span>
+      </div>
+    </div>`;
+  }).join('');
+
+  $('mPacks').textContent = '勾选即生效（保存后写入配置）· 头部合计 ' + headLen + ' / ' + p.limits.rules + ' 字';
+  $('packList').innerHTML = p.packs.map(pk => `
+    <div class="card">
+      <h3><label class="sw"><input type="checkbox" data-pack="${esc(pk.id)}" ${pk.on ? 'checked' : ''}> ${esc(pk.title)}</label>
+        <span class="mut"> · ${pk.len} 字${pk.isCustom ? ' · <span class="warn">自定义</span>' : ''}</span></h3>
+      <div class="mut">${esc(pk.desc)}</div>
+      <textarea id="pt_${esc(pk.id)}" spellcheck="false">${esc(pk.text)}</textarea>
+      <div class="row"><span class="grow"></span>
+        <button class="b s tiny" data-act="pack-save" data-id="${esc(pk.id)}">保存正文</button>
+        <button class="b s tiny" data-act="pack-reset" data-id="${esc(pk.id)}">恢复默认</button>
+      </div>
+    </div>`).join('');
+
+  const benchHtml = (!p.bench && !BENCH) ? '（未运行）'
+    : (() => { const r = BENCH || p.bench;
+        return '<div class="row"><b class="' + (r.okCount === r.total ? 'ok' : 'bad') + '">' + r.okCount + ' / ' + r.total + ' 通过</b>' +
+          '<span class="mut">头部 ' + r.headLen + ' 字 · 尾注 ' + r.tailLen + ' 字 · ' + esc(r.at) + '</span></div>' +
+          '<table><thead><tr><th>场景</th><th>模式</th><th>结果</th><th>注入</th><th>说明</th></tr></thead><tbody>' +
+          r.cases.map(c => '<tr><td><b>' + esc(c.title) + '</b><div class="mut">' + esc(c.id) + '</div></td><td class="mut">' + esc(c.mode) +
+            '</td><td class="' + (c.ok ? 'ok' : 'bad') + '">' + (c.ok ? 'PASS' : 'FAIL') + '</td><td>' + c.len + ' 字</td><td class="mut">' +
+            esc((c.fails.length ? c.fails.join('；') : c.passes.join('；'))) + '</td></tr>').join('') +
+          '</tbody></table>'; })();
+  $('benchWrap').innerHTML = benchHtml;
+
+  $('tbPerm').innerHTML = Object.keys(st.states || {}).map(k => {
+    const v = st.states[k], cls = v === 'granted' ? 'ok' : (v === 'denied' ? 'bad' : 'warn');
+    return '<tr><td><code>' + esc(k) + '</code></td><td class="' + cls + '">' + esc(String(v)) + '</td><td class="mut">' + esc((st.permDesc || {})[k] || '') + '</td></tr>';
+  }).join('') || '<tr><td colspan="3" class="mut">（无）</td></tr>';
+
+  renderStack(st);
+  $('preCfg').textContent = JSON.stringify(st.cfg || {}, null, 2);
+  $('preSelf').textContent = st.selftest ? JSON.stringify(st.selftest, null, 2) : '（未运行）';
+
+  if (document.activeElement !== $('taProbe')) $('taProbe').value = st.probeText || '';
+  $('cTestOnStart').checked = !!st.realtestOnStart;
+  renderLive(st.realtest);
+}
+
+let STACK_SEL = 'id';
+function renderStack(st) {
+  const layers = st.stack || [];
+  $('mStack').textContent = '启用 ' + layers.filter(x => x.on).length + ' / ' + layers.length + ' 层 · 合成 ' + (st.stackLen || 0) + ' 字';
+  document.getElementById('stackList').innerHTML = layers.map(function (l, i) {
+    return '<li draggable="true" data-id="' + esc(l.id) + '"' + (STACK_SEL === l.id ? ' class="sel"' : '') + '>'
+      + '<span class="h">☰</span><span class="idx">' + (i + 1) + '</span>'
+      + '<input type="checkbox" data-on="' + esc(l.id) + '"' + (l.on ? ' checked' : '') + '>'
+      + '<span class="nm">' + esc(l.title) + '<span class="mut"> · ' + l.len + ' 字' + (l.isCustom ? ' · 已改' : '') + '</span></span>'
+      + '<button class="b s tiny" data-edit="' + esc(l.id) + '">编辑</button>'
+      + '</li>';
+  }).join('') || '<li class="mut" style="cursor:default">（空）</li>';
+
+  const cur = layers.filter(function (l) { return l.id === STACK_SEL; })[0] || layers[0];
+  if (cur) {
+    STACK_SEL = cur.id;
+    $('mStackSel').textContent = '（' + cur.id + '）';
+    if (document.activeElement !== $('taStack')) $('taStack').value = cur.text || '';
+    $('mStackLen').textContent = (cur.text || '').length + ' 字';
+  }
+  $('preStack').textContent = layers.filter(function (l) { return l.on; }).map(function (l) { return l.text; }).join('\n\n') || '（没有启用任何层）';
+
+  document.getElementById('stackList').querySelectorAll('input[data-on]').forEach(function (cb) {
+    cb.onchange = function () { post({ type: 'stack-toggle', id: cb.dataset.on, on: cb.checked }); };
+  });
+  document.getElementById('stackList').querySelectorAll('button[data-edit]').forEach(function (b) {
+    b.onclick = function () { STACK_SEL = b.dataset.edit; renderStack(ST); };
+  });
+}
+
+let stackDrag = null;
+document.addEventListener('dragstart', function (e) {
+  const li = e.target.closest && e.target.closest('#stackList li[data-id]');
+  if (!li) return;
+  stackDrag = li.dataset.id;
+  try { e.dataTransfer.setData('text/plain', stackDrag); e.dataTransfer.effectAllowed = 'move'; } catch (x) {}
+});
+document.addEventListener('dragover', function (e) {
+  const li = e.target.closest && e.target.closest('#stackList li[data-id]');
+  if (li && stackDrag) e.preventDefault();
+});
+document.addEventListener('drop', function (e) {
+  const li = e.target.closest && e.target.closest('#stackList li[data-id]');
+  if (!li || !stackDrag) return;
+  e.preventDefault();
+  const ul = document.getElementById('stackList');
+  const dragged = ul.querySelector('li[data-id="' + stackDrag + '"]');
+  if (!dragged) return;
+  ul.insertBefore(dragged, li);
+  const ids = Array.from(ul.querySelectorAll('li[data-id]')).map(function (x) { return x.dataset.id; });
+  stackDrag = null;
+  post({ type: 'stack-order', ids: ids });
+});
+
+$('btnStackSave').onclick = function () { post({ type: 'stack-save', id: STACK_SEL, text: $('taStack').value }); };
+$('btnStackReset').onclick = function () { post({ type: 'stack-save', id: STACK_SEL, reset: true }); };
+$('btnStackSync').onclick = function () { post({ type: 'sys-sync' }); };
+const inPF = $('inPersonaFile');
+if (inPF) inPF.value = (ST && ST.personaFile) || '';
+if ($('mPersonaFile')) $('mPersonaFile').textContent = (ST && ST.personaFile) ? ('当前：' + ST.personaFile + '（' + String((ST.persona || '').length) + ' 字）') : '未设置，正在用内置人设 assets/persona-zh.md';
+if ($('btnPersonaLoad')) $('btnPersonaLoad').onclick = function () { post({ type: 'persona-file', path: String($('inPersonaFile').value || '').trim() }); };
+if ($('btnPersonaPick')) $('btnPersonaPick').onclick = function () {
+  const v = window.prompt('人设文件绝对路径', ST.personaFile || '');
+  if (v) { $('inPersonaFile').value = v; post({ type: 'persona-file', path: v.trim() }); }
+};
+$('btnStackAllOn').onclick = function () {
+  const off = (ST && ST.stack ? ST.stack.filter(function (l) { return !l.on; }) : []);
+  off.forEach(function (l) { post({ type: 'stack-toggle', id: l.id, on: true }); });
+};
+
+function jsTag(j) {
+  if (!j) return '<span class="mut">—</span>';
+  if (j.refused === null) return '<span class="warn">空回复</span>';
+  return j.refused ? '<span class="bad">拒绝</span>' : '<span class="ok">执行</span>';
+}
+function renderLive(r) {
+  if (!r) { $('liveWrap').innerHTML = '（未运行）'; $('preLive').textContent = '（未运行）'; return; }
+  const v = r.verdict || {};
+  const rows = (r.steps || []).map(s => {
+    const body = s.text ? (s.text.head || '') : '';
+    return '<tr><td><b>' + esc(s.label || s.id) + '</b><div class="mut">' + esc(s.id) + '</div></td>' +
+      '<td>' + (s.error ? '<span class="bad">' + esc(String(s.error).slice(0, 160)) + '</span>' : jsTag(s.judge)) + '</td>' +
+      '<td class="mut">' + (s.model ? esc(s.model) + '<br>' : '') + (s.ms ? s.ms + ' ms' : '') + (s.text ? '<br>' + s.text.len + ' 字' : '') + (s.status ? '<br>' + esc(s.status) : '') + '</td>' +
+      '<td class="mut">' + esc(body.slice(0, 260)) + '</td></tr>';
+  }).join('');
+  $('liveWrap').innerHTML =
+    '<div class="row"><b class="' + (v.jailbroken ? 'ok' : 'bad') + '">破甲：' + (v.jailbroken ? 'YES（有一次没拒绝）' : 'NO（全部拒绝/报错）') + '</b>' +
+    '<span class="mut">裸=' + esc(String(v.raw)) + ' · system=' + esc(String(v.sys)) + ' · both=' + esc(String(v.both)) + ' · 对话=' + esc(String(v.chat)) + '</span></div>' +
+    '<div class="mut">探针 ' + ((r.probe || {}).len || 0) + ' 字 · system 块 ' + (r.sysLen || 0) + ' 字 · 用户侧注入 ' + (r.composedLen || 0) + ' 字 · 模式 ' + esc(r.mode || '') + ' · ' + esc(r.at || '') + '</div>' +
+    '<table><thead><tr><th>步骤</th><th>判定</th><th>信息</th><th>回复开头</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  $('preLive').textContent = JSON.stringify(r, null, 2);
+}
+function seqOf(mode) {
+  const ul = document.querySelector('.plist[data-mode="' + mode + '"]');
+  if (!ul) return [];
+  return Array.from(ul.querySelectorAll('li[data-id]')).filter(li => {
+    const cb = li.querySelector('input[data-seq]'); return !cb || cb.checked;
+  }).map(li => li.dataset.id);
+}
+function pushSeq(mode) { post({ type: 'mode-packs', mode: mode, ids: seqOf(mode) }); }
+
+function save() {
+  post({ type: 'save', data: {
+    enabled: $('cEnabled').checked, injectRules: $('cInject').checked, autoApprove: $('cApprove').checked,
+    pollMs: Number($('nPoll').value) || 3000, tail: $('taTail').value, stripOn: $('cStrip').checked } });
+  toast('已提交…');
+}
+
+$('btnSave').onclick = save;
+$('btnRefresh').onclick = () => post({ type: 'refresh' });
+$('btnPreview').onclick = () => post({ type: 'preview', tail: $('taTail').value });
+$('btnReset').onclick = () => post({ type: 'reset' });
+$('btnDefTail').onclick = () => { $('taTail').value = (ST && ST.presets && ST.presets.defTail) || ''; };
+$('btnGrant').onclick = () => { $('mGrant').textContent = '请求中…'; post({ type: 'grant' }); };
+$('btnSelf').onclick = () => { $('mTest').textContent = '运行中…'; post({ type: 'selftest' }); };
+$('btnExport').onclick = () => post({ type: 'export' });
+$('btnImport').onclick = () => post({ type: 'import' });
+$('btnReport').onclick = () => post({ type: 'openSelftest' });
+$('cEnabled').onchange = save; $('cInject').onchange = save; $('cApprove').onchange = save; $('cStrip').onchange = save;
+
+$('btnBench').onclick = () => { $('mBench').textContent = '运行中…'; post({ type: 'bench' }); };
+$('selMode').onchange = () => post({ type: 'current-mode', value: $('selMode').value });
+$('selInject').onchange = () => post({ type: 'inject-mode', value: $('selInject').value });
+$('selPmode').onchange = () => post({ type: 'prompt-mode', value: $('selPmode').value });
+$('btnSeedSave').onclick = () => post({ type: 'seed-save', value: $('taSeed').value });
+$('btnPersonaSave').onclick = () => post({ type: 'persona-save', value: $('taPersona').value });
+$('btnPersonaReset').onclick = () => post({ type: 'persona-save', reset: true });
+$('btnSyncSys').onclick = () => post({ type: 'sys-sync' });
+$('btnFix').onclick = () => { $('mSys').textContent = '修复中…'; post({ type: 'fix-mount' }); };
+$('btnReal').onclick = () => { $('mLive').textContent = '实测中…（可能 1–3 分钟）'; post({ type: 'realtest', probe: $('taProbe').value, mode: (ST && ST.currentMode) || '' }); };
+$('btnProbeSave').onclick = () => post({ type: 'probe-save', text: $('taProbe').value, realtestOnStart: $('cTestOnStart').checked });
+$('cTestOnStart').onchange = () => post({ type: 'probe-save', text: $('taProbe').value, realtestOnStart: $('cTestOnStart').checked });
+
+// 拖动排序（每模式独立）
+let dragLi = null;
+document.addEventListener('dragstart', e => {
+  const li = e.target.closest && e.target.closest('.plist li[data-id]');
+  if (!li) return;
+  dragLi = li; li.classList.add('drag');
+  try { e.dataTransfer.setData('text/plain', li.dataset.id); e.dataTransfer.effectAllowed = 'move'; } catch (x) {}
+});
+document.addEventListener('dragover', e => {
+  const li = e.target.closest && e.target.closest('.plist li[data-id]');
+  if (!li || !dragLi || li === dragLi || li.parentNode !== dragLi.parentNode) return;
+  e.preventDefault();
+  document.querySelectorAll('.plist li.over').forEach(x => x.classList.remove('over'));
+  li.classList.add('over');
+  const r = li.getBoundingClientRect(), after = (e.clientY - r.top) > r.height / 2;
+  li.parentNode.insertBefore(dragLi, after ? li.nextSibling : li);
+});
+document.addEventListener('dragend', () => {
+  document.querySelectorAll('.plist li').forEach(x => x.classList.remove('drag', 'over'));
+  if (dragLi) { const ul = dragLi.parentNode; dragLi = null; renumber(ul); pushSeq(ul.dataset.mode); }
+});
+function renumber(ul) {
+  if (!ul) return;
+  Array.from(ul.querySelectorAll('li[data-id]')).forEach((li, i) => { const n = li.querySelector('.idx'); if (n) n.textContent = i + 1; });
+}
+$('btnPacksSaveAll').onclick = () => {
+  const ids = Array.from(document.querySelectorAll('input[data-pack]')).filter(x => x.checked).map(x => x.dataset.pack);
+  post({ type: 'packs-set', ids: ids });
+};
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.pack) {
+    const ids = Array.from(document.querySelectorAll('input[data-pack]')).filter(x => x.checked).map(x => x.dataset.pack);
+    post({ type: 'packs-set', ids: ids });
+  }
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]');
+  if (!b) return;
+  const act = b.dataset.act, id = b.dataset.id;
+  if (act === 'mode-save') post({ type: 'mode-save', id: id, text: $('mt_' + id).value });
+  if (act === 'mode-reset') post({ type: 'mode-reset', id: id });
+  if (act === 'pack-save') post({ type: 'pack-save', id: id, text: $('pt_' + id).value });
+  if (act === 'pack-reset') post({ type: 'pack-save', id: id, text: '', reset: true });
+  if (act === 'seq-del') {
+    const li = b.closest('li[data-id]');
+    if (li) { const ul = li.parentNode; li.remove(); renumber(ul); pushSeq(ul.dataset.mode); }
+  }
+  if (act === 'seq-add') {
+    const mode = b.dataset.mode;
+    const sel = document.querySelector('select[data-addmode="' + mode + '"]');
+    if (sel && sel.value) { const ids = seqOf(mode).concat([sel.value]); post({ type: 'mode-packs', mode: mode, ids: ids }); }
+  }
+  if (act === 'seq-reset') post({ type: 'mode-packs', mode: b.dataset.mode, ids: [] , reset: true });
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t && t.dataset && t.dataset.seq) {
+    const ul = t.closest('.plist');
+    if (ul) pushSeq(ul.dataset.mode);
+  }
+});
+
+window.addEventListener('message', e => {
+  const m = e.data || {};
+  if (m.type === 'state') render(m.state);
+  else if (m.type === 'preview') $('prePreview').textContent = m.text;
+  else if (m.type === 'selftest') $('preSelf').textContent = JSON.stringify(m.rec, null, 2);
+  else if (m.type === 'bench') { BENCH = m.result; render(ST); $('preSample').textContent = (m.result.cases[0] || {}).sample || ''; $('mBench').textContent = m.result.okCount + '/' + m.result.total + ' 通过'; }
+  else if (m.type === 'realtest') { renderLive(m.result); const v = (m.result || {}).verdict || {}; $('mLive').textContent = '完成 · 破甲=' + (v.jailbroken ? 'YES' : 'NO'); }
+  else if (m.type === 'ctx-text') { $('preCtx').textContent = m.text; $('mCtx').textContent = m.len + ' 字 · 已就绪'; }
+  else if (m.type === 'toast') toast(m.text);
+});
+
+// ── v2.8.0 任务上下文 ──
+let CTX_CUR = null;
+function ctxRenderFields() {
+  const list = (ST && ST.ctx && ST.ctx.templates) || [];
+  const selTpl = $('ctxTpl');
+  if (list.length && selTpl.options.length !== list.length + 1) {
+    selTpl.innerHTML = '<option value="">选择模板…</option>' + list.map(t => '<option value="' + esc(t.id) + '">' + esc(t.title) + '</option>').join('');
+    if (!CTX_CUR) CTX_CUR = list[0].id;
+    selTpl.value = CTX_CUR;
+  }
+  const tpl = list.filter(x => x.id === CTX_CUR)[0] || list[0];
+  if (!tpl) { $('ctxFields').innerHTML = '<span class="mut">（无模板）</span>'; return; }
+  CTX_CUR = tpl.id;
+  const draft = (ST && ST.ctx && ST.ctx.drafts && ST.ctx.drafts[tpl.id]) || {};
+  $('ctxFields').innerHTML = tpl.fields.map(f =>
+    '<label class="mut">' + esc(f.label) + ' <input data-ctxk="' + esc(f.k) + '" placeholder="' + esc(f.ph) + '" value="' + esc(draft[f.k] || '') + '" style="width:100%"></label>'
+  ).join('');
+  ctxPreview();
+}
+function ctxFieldsNow() {
+  const o = {};
+  document.querySelectorAll('#ctxFields input[data-ctxk]').forEach(i => { o[i.dataset.ctxk] = i.value; });
+  return o;
+}
+function ctxPreview() { post({ type: 'ctx-generate', template: CTX_CUR, fields: ctxFieldsNow() }); }
+$('ctxTpl').onchange = () => { CTX_CUR = $('ctxTpl').value; ctxRenderFields(); };
+$('btnCtxCopy').onclick = () => post({ type: 'ctx-copy', template: CTX_CUR, fields: ctxFieldsNow() });
+$('btnCtxSave').onclick = () => { post({ type: 'ctx-save', template: CTX_CUR, fields: ctxFieldsNow() }); toast('填空已保存'); };
+// ── v2.8.0 模型来源绑定 ──
+function msRender() {
+  const ms = (ST && ST.modeSource) || {};
+  const map = ms.map || {};
+  const provs = ms.providers || [];
+  document.querySelectorAll('[data-ms-kind]').forEach(sel => {
+    const mode = sel.dataset.msKind;
+    const bind = map[mode] || {};
+    const kind = typeof bind === 'string' ? bind : (bind.source || 'none');
+    sel.innerHTML = ['endpoint', 'provider', 'none'].map(k =>
+      '<option value="' + k + '"' + (k === kind ? ' selected' : '') + '>' +
+      (k === 'endpoint' ? '自定义端点' : k === 'provider' ? 'Breezell provider' : '跟随官方（不切）') + '</option>').join('');
+    const prov = document.querySelector('[data-ms-prov="' + mode + '"]');
+    const model = document.querySelector('[data-ms-model="' + mode + '"]');
+    const note = document.querySelector('[data-ms-note="' + mode + '"]');
+    const showProv = kind === 'provider';
+    prov.style.display = showProv ? '' : 'none';
+    model.style.display = showProv ? '' : 'none';
+    if (showProv) {
+      const pid = bind.provider || (provs[0] && provs[0].id) || '';
+      prov.innerHTML = provs.map(pv => '<option value="' + esc(pv.id) + '"' + (pv.id === pid ? ' selected' : '') + '>' + esc(pv.id) + (pv.hasKey ? '' : '（无 key）') + '</option>').join('');
+      const cur = provs.filter(pv => pv.id === pid)[0] || provs[0] || { models: [] };
+      const mid = bind.model || (cur.models && cur.models[0] && (cur.models[0].name || cur.models[0].id)) || '';
+      model.innerHTML = (cur.models || []).map(md => {
+        const v = md.name || md.id;
+        return '<option value="' + esc(v) + '"' + (v === mid ? ' selected' : '') + '>' + esc(v) + '</option>';
+      }).join('');
+    }
+    if (note) note.textContent = typeof bind === 'object' && bind.source === 'provider' ? (bind.provider || '') + ' / ' + (bind.model || '') : '';
+    sel.onchange = () => msRender();
+    prov.onchange = () => msRender();
+  });
+}
+if (ST && ST.ctx) { try { ctxRenderFields(); } catch (e) { } }
+if (ST && ST.modeSource) { try { msRender(); } catch (e) { } }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-act="ms-save"]');
+  if (!b) return;
+  const mode = b.dataset.id;
+  const kind = document.querySelector('[data-ms-kind="' + mode + '"]').value;
+  const prov = document.querySelector('[data-ms-prov="' + mode + '"]');
+  const model = document.querySelector('[data-ms-model="' + mode + '"]');
+  post({ type: 'mode-source', mode: mode, kind: kind,
+    provider: prov && prov.value ? prov.value : undefined,
+    model: model && model.value ? model.value : undefined });
+});
+
+post({ type: 'ready' });
+</script>
+</body>
+</html>
