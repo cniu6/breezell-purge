@@ -14,6 +14,10 @@ Agent / Plan / Analyze / Entanglement / Teams / DarkSelene → 官方原版，�
 - 面板：侧边栏 `BZL 破甲 · 控制台`（Box 内），9 个页签
 - 真实自测：headless 单测 + 真机 selftest + 8 场景方案基准
 
+![破甲 vs 未破甲](docs/img/ab-contrast.png)
+
+*同一探针、同一模型：左＝无注入（拒绝），右＝注入 16,981 字符（给出完整脚本）。下半部分为 45 项补丁落点逐个验收。详见 [docs/AB-TEST.md](docs/AB-TEST.md)。*
+
 | 控制台 | 宿主版本实测 |
 |---|---|
 | ![控制台](docs/img/console-2.9.0.png) | ![宿主 1.4.52](docs/img/host-devpage-1.4.52.png) |
@@ -29,6 +33,7 @@ Agent / Plan / Analyze / Entanglement / Teams / DarkSelene → 官方原版，�
 |---|---|
 | [docs/ENVIRONMENT.md](docs/ENVIRONMENT.md) | 真实环境快照（宿主 1.4.52 / 插件 3.0.0 / 校验和 / 自注入记录）+ 一分钟排查表 |
 | [docs/INJECTION.md](docs/INJECTION.md) | 两条注入通道的代码级说明与宿主补丁锚点 |
+| [docs/AB-TEST.md](docs/AB-TEST.md) | 真实 A/B 对照（破甲 vs 未破甲）+ 逐落点验收 45 项 |
 | [CHANGELOG.md](CHANGELOG.md) | 每版「真因 → 修法」 |
 
 **遇到不生效先看这两个文件**：[docs/ENVIRONMENT.md](docs/ENVIRONMENT.md)（真实环境快照 + 一分钟排查表）、[docs/INJECTION.md](docs/INJECTION.md)（注入链路与锚点）。

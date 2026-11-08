@@ -11,3 +11,6 @@ assets/persona-dsh.md
 *.tmp
 .DS_Store
 Thumbs.db
+
+tools/_ab-result.json
+tools/_patch-verify.json
