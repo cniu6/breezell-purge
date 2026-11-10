@@ -2,7 +2,7 @@
 
 本文件是**真实快照**，不是示例。遇到"不生效"先对照这里逐项核。
 
-采集时间：**2026-11-08 15:5x (UTC+8)** ｜ 采集脚本：`tools/snapshot.js`
+采集时间：**2026-11-11 07:2x (UTC+8)** ｜ 采集脚本：`tools/snapshot.js`
 
 ## 1. 宿主与运行时
 
@@ -10,14 +10,13 @@
 |---|---|
 | 安装包版本 | `product.json.version = 1.144.0`，`quality = stable` |
 | Breezell 版本（底座） | `breezellVersion = 1.4.5`，`commit = 7e96c33a411e6116125ba798610dba4ec93d952c` |
-| 热更新运行时（当前） | `1.4.52`，目录 `hot-runtime/1.4.52-d3ad01a71d7d` |
-| 热更新 sha256 | `d3ad01a71d7da12d2a1ff30019e97b732175e04be763d56aa77dd1042c2b47ec` |
-| 已存在的运行时目录 | `1.4.51-7f94ed7f687e`、`1.4.52-d3ad01a71d7d` |
-| `current.json` | `bootAttempts=0`，`previousVersion=1.4.51`，`failedVersions=[1.4.36-…, 1.4.37-…]` |
+| 热更新运行时（当前） | `1.4.54`，目录 `hot-runtime/1.4.54-d7fda3059280` |
+| 热更新 sha256 | `d7fda30592803a0fa251930c35ef95912eaab1d6de041963d1c47e176d845d61` |
+| 已存在的运行时目录 | `1.4.52-d3ad01a71d7d`、`1.4.54-d7fda3059280` |
+| `current.json` | `bootAttempts=0`，`previousVersion=1.4.52` |
 | 平台 | `win32-x64` |
-| 界面证据 | ![宿主 1.4.52](img/host-devpage-1.4.52.png) |
 
-> 宿主升级会**换一份 workbench**，桥注入路径（2.x）的补丁必须跟着重打；自注入路径（3.x）不受影响。
+> 宿主热更新会**换一份 workbench**，2.x 桥注入路径的四个补丁必须重打（`node tools/repatch-wb.js "<hot-runtime 根>"`）；3.x 自注入路径不受影响。
 
 ## 2. 插件
 
@@ -26,7 +25,7 @@
 | 插件 id | `cniu6.breezell-purge` |
 | 版本 | `3.0.0` |
 | 安装目录 | `%USERPROFILE%\.breezell-editor\extensions\cniu6.breezell-purge-3.0.0` |
-| 同机另一扩展 | `local.breezell-offline-3.4.6`（提供 2.x 的桥，装了不影响 3.x） |
+| 同机另一扩展 | `local.breezell-offline-3.4.8`（3.4.8 新增 `pMid` 中段注入，与本插件无关） |
 | 声明权限（8 项） | `chat.intercept` `chat.read` `chat.events` `chat.approve` `chat.send` `models.request` `agent.hooks` `ui.contribute` |
 | 三模式 | `bzl-ctf@agent` `bzl-run@agent` `bzl-ent@entanglement` |
 
@@ -101,9 +100,9 @@ models.request   ask          ← 未授予：影响「实测」页的探针与�
 
 | 根 | workbench | extensionHostProcess |
 |---|---|---|
-| `hot-runtime/1.4.51-7f94ed7f687e` | `ZWzkbYQmVGbujtJZ…` ✅ | `zEIxhe+P/we8rah/…` ✅ |
-| `hot-runtime/1.4.52-d3ad01a71d7d` | `jyJh13/jP+G0GWI0…` ✅ | `O5qmj9bbNK0y80Gu…` ✅ |
-| `resources/app`（底座） | `tRfXqJi/rvU90ZAZ…` ✅ | `ZteaU7IaKLldX5My…` ✅ |
+| `hot-runtime/1.4.54-d7fda3059280`（当前） | `W52mrX6V6QZ6v95Q…` ✅ | `8VXi1Fy12LlVrNM1…` ✅ |
+| `hot-runtime/1.4.52-d3ad01a71d7d` | `kc70wY8ms8MoaXZW…` ✅ | `O5qmj9bbNK0y80Gu…` ✅ |
+| `resources/app`（底座） | `SNPLgAI1uEqv2TvS…` ✅ | `ZteaU7IaKLldX5My…` ✅ |
 
 > 只要有一项 MISMATCH，宿主就**不会加载补丁版 bundle**，所有补丁形同没打。
 
@@ -143,3 +142,29 @@ models.request   ask          ← 未授予：影响「实测」页的探针与�
 | 原生模式也被改 | `selftest.enabled` + 面板开关 | 3.x 拿不到宿主模式，靠总开关控制；要按模式门控只能走 2.x 桥 |
 | 桥注入不生效 | 三个根的校验和 | 任一 MISMATCH → 补丁没被加载 |
 | 面板「未挂载」 | `selftest` 是否有新记录 | 没有 → `state()` 抛错，看 `exthost.log` |
+
+## 11. 1.4.54 适配记录（热更新后重打补丁）
+
+热更新把 workbench 换成新 bundle，四个补丁全部丢失。1.4.54 的锚点变化：
+
+| 补丁 | 1.4.52 锚点 | 1.4.54 锚点 |
+|---|---|---|
+| base 白名单 | `eCo=["normal","plan","analyze","agent"]` | `["normal","plan","analyze","agent"],CCi={…}`（变量改名，直接按数组文本匹配） |
+| 模式选择器回调 | `V=W=>{let q=D(W);H(q?q.base:W),E.setActiveMode(q)}` | `H=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}` |
+| 原生模式数组 | `eAa` | `tFa` |
+| 服务访问器 | `Io()` | 组件内 `i`（`Po()` 的返回值） |
+
+**坑**：`hm-live` 不能把 `try{…}` 直接插进 `let a=…, try{…}, b=…` 的声明列表（`SyntaxError: Unexpected token 'try'`）。必须写成新增绑定 + IIFE：
+
+```js
+j=I.activeMode?…:u,/*bzl-offline:hm-live*/_bzlHM=(function(){try{…}catch(_e){}return 0})(),W=(0,KF.useCallback)(…)
+```
+
+重打命令与验收：
+
+```powershell
+node tools/repatch-wb.js "$env:APPDATA\Breezell\hot-runtime\1.4.54-d7fda3059280"
+node tools/patch-verify.js      # 45/45
+```
+
+重启后实测：`selftest version=3.0.0 armWhy=ok bench 8/8 apiVersion=1`，桥 `promptMode=strict`。

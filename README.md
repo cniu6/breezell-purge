@@ -191,6 +191,8 @@ docs/            ENVIRONMENT.md（真实环境快照 + 排查表）· INJECTION.
 docs/img/        界面与宿主版本截图
 tools/pack.js    无依赖 vsix 打包器
 tools/snapshot.js 采集真实环境快照（宿主/运行时/插件/桥/自注入/校验和）
+tools/repatch-wb.js 宿主热更新后重打四个 workbench 补丁（每落点自验）
+tools/patch-verify.js 逐落点验收 45 项
 ```
 
 ## 9. 关于人设文件
@@ -207,6 +209,16 @@ tools/snapshot.js 采集真实环境快照（宿主/运行时/插件/桥/自注�
 - `models.request` 对 `system` 字段有 20,000 字符上限，30k 人设走该接口会报 `system must be a string of at most 20000 characters` —— 宿主限制，不是插件 bug。
 - 只在 Breezell 插件 API（`apiVersion: 1`）+ 宿主 `1.4.52`（底座 `1.4.5`，`win32-x64`）验证过，不保证兼容上游 VS Code 或其它宿主版本。
 
-## 11. 免责
+## 11. 热更新后要做的事（2.x 桥注入路径）
+
+宿主每次热更新都会换一份 `workbench.desktop.main.js`，四个补丁会被冲掉（3.x 自注入不受影响）：
+
+```powershell
+node tools/repatch-wb.js "$env:APPDATA\Breezell\hot-runtime\<版本-哈希>"
+node tools/patch-verify.js        # 必须 45/45，任一 ❌ = 那个点没生效
+# 重启 Breezell 后看 selftest: armWhy=ok / bench 8/8
+```
+
+## 12. 免责
 
 本项目修改的是**本地客户端的提示词组装路径**，用于个人研究与自己环境里的行为观察。使用前请自行确认你所在环境的使用条款与当地法规；作者不对使用后果负责。

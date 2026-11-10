@@ -2,6 +2,16 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.0.1
+
+**适配宿主 1.4.54 + breezell-offline 3.4.8（插件本体代码未变）**
+
+- 热更新把 `workbench.desktop.main.js` 换新，四个宿主补丁（base 白名单 / hm-live / hm-gate / 命令桥）全部丢失 —— 已在 1.4.54 上重打并逐点验证 **45/45**。
+- 新增 `tools/repatch-wb.js`：按锚点重打四个补丁，**每个落点自己判成功/失败**，并回写 `product.json` 校验和。
+- 1.4.54 变量改名：模式选择器回调 `V=…` → `H=…`、原生模式数组 `eAa` → `tFa`、服务访问器 `Io()` → 组件内 `i`。
+- 踩坑：`hm-live` 若把 `try{}` 直接插进 `let` 声明列表会 `SyntaxError: Unexpected token 'try'`，必须写成 `_bzlHM=(function(){…})()` 新增绑定。
+- 重启后实测：`selftest 3.0.0 / armWhy=ok / bench 8/8 / apiVersion 1`，`current.json = 1.4.54`，桥 `promptMode=strict`。
+
 ## 3.0.0
 
 **重构：单插件自注入，不再依赖 breezell-offline 与宿主补丁**
