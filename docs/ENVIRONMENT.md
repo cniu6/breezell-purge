@@ -168,3 +168,41 @@ node tools/patch-verify.js      # 45/45
 ```
 
 重启后实测：`selftest version=3.0.0 armWhy=ok bench 8/8 apiVersion=1`，桥 `promptMode=strict`。
+
+## 12. 1.4.55 适配记录
+
+热更新到 `1.4.55-4add42f765ae` 后同样的四处补丁再次丢失，而且命令桥的锚点变量名又换了一轮：
+
+| 补丁 | 1.4.54 锚点 | 1.4.55 锚点 |
+|---|---|---|
+| base 白名单 | `["normal","plan","analyze","agent"],CCi={…}` @2787392 | 同形态 @2804323（按数组文本匹配即可） |
+| 模式选择器回调 | `H=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}` | `U=H=>{let V=k(H);z(V?V.base:H),E.setActiveMode(V)}`（finder `D→k`、setter `W→z`） |
+| hm-live 状态变量 | `I.activeMode` | 同（`I`/`u` 由捕获得到） |
+| 服务访问器 | `i`（`Po()` 返回值） | `i`（未变） |
+
+**修法**：`tools/repatch-wb.js` 的命令桥正则改为全变量捕获，任何版本只要形态一致都能命中：
+
+```js
+/([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)=>\{let ([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\(\2\);([A-Za-z_$][\w$]*)\(\3\?\3\.base:\2\),([A-Za-z_$][\w$]*)\.setActiveMode\(\3\)\}/
+```
+
+另外两处环境问题：
+
+- `extensions.json` 里 `cniu6.breezell-purge` 与旧的 `local.bzl-purge` 同时存在且指向同一目录（改名遗留）→ 双次激活；删除旧条目后 21→20，`bzlPurge.hostMode` 里的 `plugin:local.bzl-purge/…` 一并改成 `plugin:cniu6.breezell-purge/…`。
+- `resources/app`（底座）的 `product.json` 里 `vs/…` 与 `out/vs/…` 两个键都要回写，否则底座启动校验会 MISMATCH。
+
+重打与验收：
+
+```powershell
+node tools/repatch-wb.js "$env:APPDATA\Breezell\hot-runtime\1.4.55-4add42f765ae"
+node tools/patch-verify.js      # 45/45
+```
+
+**端到端验证（2026-11-11 22:51，宿主 1.4.55 + 插件 3.1.1）**
+
+```
+selftest   3.1.1 · armWhy=ok · bench 8/8 · apiVersion=1 · host.level=ok(1.4.55)
+lastinject 2026-11-11T14:51:15Z · mode=bzl-ctf · len=17943/20000 · personaLen=16832
+```
+
+`lastinject` 在发送消息后即时刷新，说明 `registerSendHandler` 自注入在 1.4.55 上正常工作；此版本 `selfInject=true`，桥配置 `sysLen=0 / promptMode=append` 属预期（桥不参与）。
