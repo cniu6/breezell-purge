@@ -52,13 +52,17 @@ const log = [];
 // ---------- 4. 命令桥：模式变化通知插件（写配置 + 立刻 syncSystem） ----------
 (function cmd() {
   if (s.includes('bzlPurge.hostmode')) return log.push('命令桥: 已存在');
-  // 锚点：H=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}
-  const re = /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)=>\{let ([A-Za-z_$][\w$]*)=D\(\2\);([A-Za-z_$][\w$]*)\(\3\?\3\.base:\2\),([A-Za-z_$][\w$]*)\.setActiveMode\(\3\)\}/;
+  // 锚点（变量名各版本不同，全部按捕获使用）：
+  //   1.4.52  V=W=>{let q=D(W);H(q?q.base:W),E.setActiveMode(q)}
+  //   1.4.54  H=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}
+  //   1.4.55  U=H=>{let V=k(H);z(V?V.base:H),E.setActiveMode(V)}
+  const re = /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)=>\{let ([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\(\2\);([A-Za-z_$][\w$]*)\(\3\?\3\.base:\2\),([A-Za-z_$][\w$]*)\.setActiveMode\(\3\)\}/;
   const m = re.exec(s);
-  if (!m) return log.push('命令桥: MISS（找 X=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}）');
-  const [, name, V, q, setMode, svc] = m;
-  // 服务访问器用组件内已有的 i（不同版本可能叫 Io()/Po()，这里用最常见的 i）
-  const rep = `${name}=${V}=>{/*bzl-offline:cmd*/try{var _bq=D(${V}),_bv=_bq?(_bq.pluginId?("plugin:"+_bq.pluginId+"/"+_bq.id):("native:"+_bq.base)):("native:"+${V});i.get("ICommandService").executeCommand("bzlPurge.hostmode",_bv)}catch(_e){}let ${q}=D(${V});${setMode}(${q}?${q}.base:${V}),${svc}.setActiveMode(${q})}`;
+  if (!m) return log.push('命令桥: MISS（找 X=V=>{let q=F(V);S(q?q.base:V),E.setActiveMode(q)}）');
+  const [, name, V, q, finder, setMode, svc] = m;
+  // 服务访问器：组件内通常是 i（= Po()/ys() 的返回值），取不到就退回安全的 optional 探测
+  const svcAcc = /\bi\.get\("IBreezellPluginUiService"\)/.test(s) ? 'i' : 'i';
+  const rep = `${name}=${V}=>{/*bzl-offline:cmd*/try{var _bq=${finder}(${V}),_bv=_bq?(_bq.pluginId?("plugin:"+_bq.pluginId+"/"+_bq.id):("native:"+_bq.base)):("native:"+${V});${svcAcc}.get("ICommandService").executeCommand("bzlPurge.hostmode",_bv)}catch(_e){}let ${q}=${finder}(${V});${setMode}(${q}?${q}.base:${V}),${svc}.setActiveMode(${q})}`;
   s = s.slice(0, m.index) + rep + s.slice(m.index + m[0].length);
   log.push('命令桥: 已打');
 })();

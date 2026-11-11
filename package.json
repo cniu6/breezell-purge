@@ -2,7 +2,7 @@
   "name": "breezell-purge",
   "displayName": "BZL 破甲",
   "description": "Breezell 单插件自注入：BZL-CTF / BZL-Run / BZL-Ent 三模式下把人设+堆叠+规则包注入每条消息的 context（≤20000 字符），不依赖其他扩展",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "publisher": "cniu6",
   "license": "Apache-2.0",
   "engines": {
@@ -36,7 +36,8 @@
       "min": "1.4.52",
       "tested": [
         "1.4.52",
-        "1.4.54"
+        "1.4.54",
+        "1.4.55"
       ],
       "note": "宿主热更新会换 workbench；2.x 桥注入的四个补丁需用 tools/repatch-wb.js 重打"
     }

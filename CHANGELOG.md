@@ -2,6 +2,15 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.1
+
+**适配宿主 1.4.55 + 去掉重复插件条目**
+
+- 真因①：热更新把 workbench 换成 1.4.55，四个桥补丁全丢；命令桥锚点变量名又换一轮（`U=H=>{let V=k(H);z(V?V.base:H),E.setActiveMode(V)}`：finder `D→k`、setter `W→z`）。
+- 修法①：`tools/repatch-wb.js` 的命令桥正则改全变量捕获，不再依赖 `D/W` 字面名；重打后 `tools/patch-verify` **45/45**。
+- 真因②：`extensions.json` 同时存在 `cniu6.breezell-purge` 与旧的 `local.bzl-purge`，两条指向同一目录 → 双次激活。
+- 修法②：删旧条目（21→20）；`bzlPurge.hostMode` 残留的 `plugin:local.bzl-purge/...` 改 `plugin:cniu6.breezell-purge/...`。
+- `breezell.supportedHost.tested` 增加 `1.4.55`；真机 `host.level=ok`。
 ## 3.1.0
 
 **新增：宿主版本匹配（支持目标版本声明 + 运行时检测 + 面板徽标）**

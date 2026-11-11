@@ -10,9 +10,9 @@
 |---|---|
 | 安装包版本 | `product.json.version = 1.144.0`，`quality = stable` |
 | Breezell 版本（底座） | `breezellVersion = 1.4.5`，`commit = 7e96c33a411e6116125ba798610dba4ec93d952c` |
-| 热更新运行时（当前） | `1.4.54`，目录 `hot-runtime/1.4.54-d7fda3059280` |
+| 热更新运行时（当前） | `1.4.55`，目录 `hot-runtime/1.4.55-4add42f765ae` |
 | 热更新 sha256 | `d7fda30592803a0fa251930c35ef95912eaab1d6de041963d1c47e176d845d61` |
-| 已存在的运行时目录 | `1.4.52-d3ad01a71d7d`、`1.4.54-d7fda3059280` |
+| 已存在的运行时目录 | `1.4.54-d7fda3059280`、`1.4.55-4add42f765ae` |
 | `current.json` | `bootAttempts=0`，`previousVersion=1.4.52` |
 | 平台 | `win32-x64` |
 
@@ -100,7 +100,7 @@ models.request   ask          ← 未授予：影响「实测」页的探针与�
 
 | 根 | workbench | extensionHostProcess |
 |---|---|---|
-| `hot-runtime/1.4.54-d7fda3059280`（当前） | `W52mrX6V6QZ6v95Q…` ✅ | `8VXi1Fy12LlVrNM1…` ✅ |
+| `hot-runtime/1.4.55-4add42f765ae`（当前） | `FU248U5a1dvP34…` ✅ | `8VXi1Fy12LlVrNM1…` ✅ |
 | `hot-runtime/1.4.52-d3ad01a71d7d` | `kc70wY8ms8MoaXZW…` ✅ | `O5qmj9bbNK0y80Gu…` ✅ |
 | `resources/app`（底座） | `SNPLgAI1uEqv2TvS…` ✅ | `ZteaU7IaKLldX5My…` ✅ |
 
