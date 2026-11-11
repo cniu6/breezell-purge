@@ -93,7 +93,11 @@ function make(h) {
       enabled: !!c.get('enabled', true),
       armed: !!h.isArmed(),
       armWhy: h.armWhy(),
-      injectRules: !!c.get('injectRules', true),
+      injectRules: !!c.get('injectRules', true),      injectRules: !!c.get('injectRules', true),
+      selfInject: c.get('selfInject', true) !== false,
+      ctxBudget: Number(c.get('ctxBudget', 20000)) || 20000,
+      injectTarget: String(c.get('injectTarget', 'context') || 'context'),
+      lastInject: (function () { try { return h.lastInject ? h.lastInject() : null; } catch (e) { return null; } })(),
       autoApprove: !!c.get('autoApprove', true),
       pollMs: Number(c.get('pollMs', 3000)) || 3000,
       stripOn: (function () { try { const o = JSON.parse(fs.readFileSync(HF('bridgeCfgFile', ''), 'utf8')); return !!(o.prompts && o.prompts.stripServerMarks); } catch (e) { return true; } })(),
@@ -191,7 +195,10 @@ function make(h) {
         for (const k of ['enabled', 'injectRules', 'autoApprove']) {
           if (typeof d[k] === 'boolean') await c.update(k, d[k], vscode.ConfigurationTarget.Global);
         }
-        if (typeof d.stripOn === 'boolean') await c.update('stripServerMarks', d.stripOn, vscode.ConfigurationTarget.Global);
+        if (typeof d.stripOn === 'boolean') await c.update('stripServerMarks', d.stripOn, vscode.ConfigurationTarget.Global);if (typeof d.stripOn === 'boolean') await c.update('stripServerMarks', d.stripOn, vscode.ConfigurationTarget.Global);
+        if (typeof d.selfInject === 'boolean') await c.update('selfInject', d.selfInject, vscode.ConfigurationTarget.Global);
+        if (d.ctxBudget) await c.update('ctxBudget', Math.min(20000, Math.max(1000, Number(d.ctxBudget) || 20000)), vscode.ConfigurationTarget.Global);
+        if (typeof d.injectTarget === 'string' && ['context', 'text', 'both'].indexOf(d.injectTarget) >= 0) await c.update('injectTarget', d.injectTarget, vscode.ConfigurationTarget.Global);
         if (typeof d.injectMode === 'string' && ['system', 'user', 'both'].indexOf(d.injectMode) >= 0) await c.update('injectMode', d.injectMode, vscode.ConfigurationTarget.Global);
         if (typeof d.currentMode === 'string') await c.update('currentMode', d.currentMode, vscode.ConfigurationTarget.Global);
         if (typeof d.probeText === 'string') await c.update('probeText', d.probeText, vscode.ConfigurationTarget.Global);

@@ -1,10 +1,10 @@
 {
-  "name": "bzl-purge",
+  "name": "breezell-purge",
   "displayName": "BZL 破甲",
-  "description": "Box 里的破甲面板：每模式独立方案序列（可拖动增删）+ system 级内置提示词 + 真实调用实测。",
+  "description": "Breezell 单插件自注入：BZL-CTF / BZL-Run / BZL-Ent 三模式下把人设+堆叠+规则包注入每条消息的 context（≤20000 字符），不依赖其他扩展",
   "version": "3.1.0",
-  "publisher": "local",
-  "license": "MIT",
+  "publisher": "cniu6",
+  "license": "Apache-2.0",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -262,7 +262,8 @@
           "default": "bzl-ctf",
           "enum": [
             "bzl-ctf",
-            "bzl-run"
+            "bzl-run",
+            "bzl-ent"
           ],
           "description": "当前生效的破甲模式（决定注入哪套方案序列）"
         },
@@ -349,6 +350,28 @@
           "default": "",
           "description": "宿主当前模式（由模式选择器自动写入，勿手改）"
         },
+        "bzlPurge.selfInject": {
+          "type": "boolean",
+          "default": true,
+          "description": "自注入：用 chat.intercept 的 context 通道直接注入（不依赖 breezell-offline 桥）"
+        },
+        "bzlPurge.ctxBudget": {
+          "type": "number",
+          "default": 20000,
+          "minimum": 1000,
+          "maximum": 20000,
+          "description": "单条消息 context 预算（官方上限 20000）"
+        },
+        "bzlPurge.injectTarget": {
+          "type": "string",
+          "enum": [
+            "context",
+            "text",
+            "both"
+          ],
+          "default": "context",
+          "description": "注入通道：context（用户不可见，推荐）/ text（改用户消息）/ both"
+        },
         "bzlPurge.ignoreHostCheck": {
           "type": "boolean",
           "default": false,
@@ -356,5 +379,16 @@
         }
       }
     }
+  },
+  "keywords": [
+    "breezell",
+    "prompt",
+    "mode",
+    "plugin",
+    "vsix"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cniu6/breezell-purge.git"
   }
 }
