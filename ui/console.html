@@ -56,6 +56,7 @@
   <span id="pEnabled" class="pill off">破甲 OFF</span>
   <span id="pArm" class="pill off">未挂载</span>
   <span id="pVer" class="pill">v-</span>
+  <span id="pHost" class="pill" title="宿主运行时版本">宿主 -</span>
   <span class="grow"></span>
   <span id="pHead" class="mut">规则 -</span>
   <span id="pConv" class="mut">会话 -</span>
@@ -81,19 +82,7 @@
     <label class="sw"><input type="checkbox" id="cApprove"> 自动放行工具调用</label>
     <label class="sw" title="剥离服务端权威段占位符（⟦bz:system:*⟧）。关闭即一键回退官方权威态。"><input type="checkbox" id="cStrip"> 服务端权威段剥离</label>
     <span class="mut">轮询</span><input type="number" id="nPoll" min="1000" max="15000" step="500"><span class="mut">ms</span>
-  </div>  </div>
-  <div class="row">
-    <label class="sw" title="单插件自注入：用官方 chat.intercept 的 context 通道把 persona+堆叠+规则包注入每条消息，不依赖 breezell-offline。"><input type="checkbox" id="cSelf"> 自注入（context 通道）</label>
-    <span class="mut">预算</span><input type="number" id="nBudget" min="1000" max="20000" step="500"><span class="mut">字符</span>
-    <span class="mut">注入目标</span>
-    <select id="selTarget">
-      <option value="context">context（用户不可见，推荐）</option>
-      <option value="both">context + 用户消息</option>
-      <option value="text">只改用户消息</option>
-    </select>
-    <span class="mut" id="lastInj">—</span>
   </div>
-
   <div class="row">
     <span class="mut">当前模式</span><select id="selMode"></select>
     <span class="mut">注入位置</span>
@@ -286,6 +275,12 @@ function render(st) {
   $('pArm').className = 'pill ' + (st.armed ? 'on' : 'off');
   $('pArm').textContent = st.armed ? '已挂载' : ('未挂载 · ' + (st.armWhy || '?'));
   $('pVer').textContent = 'v' + (st.version || '-');
+    (function(){var hh=st.host||{};var v=hh.version||'?';var lv=hh.level||'unknown';
+      var el=$('pHost');if(!el)return;
+      var map={ok:['宿主 '+v,'ok'],untested:['宿主 '+v+' 未测','warn'],'too-old':['宿主 '+v+' 过旧','bad'],unknown:['宿主 ?','mut']};
+      var it=map[lv]||map.unknown;el.textContent=it[0];el.className='pill '+(it[1]==='ok'?'on':it[1]);
+      el.title='声明支持: >='+(hh.min||'?')+' · 已测: '+((hh.tested||[]).join(', ')||'-')+' · 当前: '+(hh.version||'未知')+(hh.dir?(' ('+hh.dir+')'):'');
+    })();
   $('pHead').textContent = '规则 ' + headLen + ' / ' + p.limits.rules + ' 字';
   $('pConv').textContent = '会话 ' + (st.conversations == null ? '-' : st.conversations);
 
@@ -293,10 +288,6 @@ function render(st) {
   $('cInject').checked = !!st.injectRules;
   $('cApprove').checked = !!st.autoApprove;
   $('cStrip').checked = st.stripOn !== false;
-  if($('cSelf')) $('cSelf').checked = st.selfInject !== false;
-  if($('nBudget')) $('nBudget').value = st.ctxBudget || 20000;
-  if($('selTarget')) $('selTarget').value = st.injectTarget || 'context';
-  if($('lastInj')) $('lastInj').textContent = st.lastInject ? ('最近注入 ' + st.lastInject.len + '/' + st.lastInject.cap + ' 字符 · ' + st.lastInject.mode) : '—';
   $('nPoll').value = st.pollMs || 3000;
   if (document.activeElement !== $('taTail')) $('taTail').value = st.tailText || '';
   $('mTail').textContent = (st.tailText || '').length + ' 字';
@@ -510,10 +501,7 @@ function pushSeq(mode) { post({ type: 'mode-packs', mode: mode, ids: seqOf(mode)
 function save() {
   post({ type: 'save', data: {
     enabled: $('cEnabled').checked, injectRules: $('cInject').checked, autoApprove: $('cApprove').checked,
-    pollMs: Number($('nPoll').value) || 3000, tail: $('taTail').value, stripOn: $('cStrip').checked,
-    selfInject: $('cSelf') ? $('cSelf').checked : true,
-    ctxBudget: $('nBudget') ? Number($('nBudget').value) || 20000 : 20000,
-    injectTarget: $('selTarget') ? $('selTarget').value : 'context' } });
+    pollMs: Number($('nPoll').value) || 3000, tail: $('taTail').value, stripOn: $('cStrip').checked } });
   toast('已提交…');
 }
 
@@ -527,10 +515,7 @@ $('btnSelf').onclick = () => { $('mTest').textContent = '运行中…'; post({ t
 $('btnExport').onclick = () => post({ type: 'export' });
 $('btnImport').onclick = () => post({ type: 'import' });
 $('btnReport').onclick = () => post({ type: 'openSelftest' });
-$('cEnabled').onchange = save; $('cInject').onchange = save; $('cApprove').onchange = save; $('cStrip').onchange = save;$('cStrip').onchange = save;
-$('cSelf').onchange = save;
-$('nBudget').onchange = save;
-$('selTarget').onchange = save;
+$('cEnabled').onchange = save; $('cInject').onchange = save; $('cApprove').onchange = save; $('cStrip').onchange = save;
 
 $('btnBench').onclick = () => { $('mBench').textContent = '运行中…'; post({ type: 'bench' }); };
 $('selMode').onchange = () => post({ type: 'current-mode', value: $('selMode').value });

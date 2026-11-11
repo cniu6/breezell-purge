@@ -2,6 +2,17 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.0
+
+**新增：宿主版本匹配（支持目标版本声明 + 运行时检测 + 面板徽标）**
+
+- `package.json` 增加 `breezell.supportedHost = { min: "1.4.52", tested: ["1.4.52","1.4.54"] }`。
+- `hostRuntimeInfo()` 读 `%APPDATA%\Breezell\hot-runtime\current.json`；`hostCompat()` 给出四态：`ok / untested / too-old / unknown`。
+- 面板 header 新增「宿主 1.4.54」徽标（绿/黄/红/灰），tooltip 显示 min、已测列表、目录名。
+- `bzl-purge-selftest.json` 增加 `host` 字段：`{version, dir, base, min, tested, level, supported, note}`。
+- 新配置 `bzlPurge.ignoreHostCheck`（默认 false）：`untested` 版本仍要注入时使用。
+- 单测 9/9（版本比较三例 + 四态各一 + 忽略开关）；真机 `selftest 3.1.0 host.level=ok host.version=1.4.54`。
+
 ## 3.0.1
 
 **适配宿主 1.4.54 + breezell-offline 3.4.8（插件本体代码未变）**
