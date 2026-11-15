@@ -50,6 +50,10 @@ const RX = [
   ['计划卡片自动执行(UI)',
     /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.globalSettings\.autoExecutePlanCard===!0/g,
     '$1=' + M + '!0'],
+  // agent_mode_switch 自动接收：卡片弹出后立刻代点「切换」
+  ['agent_mode_switch 自动接收',
+    /if\(([A-Za-z_$][\w$]*)==="agent_mode_switch"\)return this\._addMessageToThread\(([A-Za-z_$][\w$]*),\{role:"tool",type:"success",content:"",result:\{accepted:!1\},name:\1,params:([A-Za-z_$][\w$]*),id:([A-Za-z_$][\w$]*),rawParams:([A-Za-z_$][\w$]*),mcpServerName:([A-Za-z_$][\w$]*)\}\),this\._setStreamState\(\2,\{isRunning:"awaiting_user"\}\),this\._notifyAwaitingApproval\(\2,"agent_mode_switch"\),\{awaitingUserApproval:!0\};/g,
+    'if($1==="agent_mode_switch")return this._addMessageToThread($2,{role:"tool",type:"success",content:"",result:{accepted:!1},name:$1,params:$3,id:$4,rawParams:$5,mcpServerName:$6}),this._setStreamState($2,{isRunning:"awaiting_user"}),this._notifyAwaitingApproval($2,"agent_mode_switch"),' + M + 'setTimeout(()=>{try{this.acceptAgentModeSwitch($2)}catch(_e){}},0),{awaitingUserApproval:!0};'],
   // 子代理模型：不再询问，直接自动选（1.4.59+ 才有）
   ['子代理模型自动',
     /auto:this\._settingsService\.state\.globalSettings\.subagentModelAuto!==!1/g,

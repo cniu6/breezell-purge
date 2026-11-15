@@ -33,6 +33,7 @@ for(const r of roots){
   add(r.name,'wb 审批: 子代理模型自动', wb.includes('subagentModelAuto!==!1') ? /auto:\/\*bzl-offline:approve-all\*\/!0/.test(wb) : null, wb.includes('subagentModelAuto!==!1')?'':'该版本无此开关');
   add(r.name,'wb 审批: 计划卡片自动执行', /notifyPlanApproval:\/\*bzl-offline:approve-all\*\/!1/.test(wb));
   add(r.name,'wb 审批: 计划执行判定钉开', !wb.includes('autoExecutePlanCard===!0') && /=\/\*bzl-offline:approve-all\*\/!0/.test(wb));
+  add(r.name,'wb 审批: agent_mode_switch 自动接收', /"agent_mode_switch"\),\/\*bzl-offline:approve-all\*\/setTimeout\(\(\)=>\{try\{this\.acceptAgentModeSwitch\(/.test(wb));
   add(r.name,'exhost 白名单含 entanglement', eh.includes('"entanglement"'));
   add(r.name,'worker 白名单含 entanglement', wk.includes('"entanglement"'));
   add(r.name,'main.app 白名单', mapp? mapp.includes('"entanglement"') : null, mapp?'':'无 main.app.js');
