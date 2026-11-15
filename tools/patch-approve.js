@@ -45,6 +45,10 @@ const RX = [
   ['计划切换自动接受',
     /([A-Za-z_$][\w$]*)==="always_run"\?([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),\(\)=>this\.acceptPlanModeSwitch\(([A-Za-z_$][\w$]*)\)\)/g,
     M + '$1!=="never"?$2($3,()=>this.acceptPlanModeSwitch($4))'],
+  // 子代理模型：不再询问，直接自动选（1.4.59+ 才有）
+  ['子代理模型自动',
+    /auto:this\._settingsService\.state\.globalSettings\.subagentModelAuto!==!1/g,
+    'auto:' + M + '!0'],
   // 危险命令（两种形态）
   ['危险命令门',
     /if\(([A-Za-z_$][\w$]*\((?:[^()]|\([^()]*\))*\))\)return`\$\{([A-Za-z_$][\w$]*)\.name\} requires user approval for a dangerous command`/g,
