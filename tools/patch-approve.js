@@ -11,7 +11,7 @@ const fs = require('fs'), path = require('path'), crypto = require('crypto'), { 
 
 const APPDATA = process.env.APPDATA || '';
 const HOT = path.join(APPDATA, 'Breezell', 'hot-runtime');
-let roots = process.argv.slice(2);
+let roots = process.argv.slice(2).filter(a => !a.startsWith('--'));
 if (!roots.length) {
   roots = [path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Breezell', 'resources', 'app')];
   try {
@@ -50,6 +50,38 @@ const RX = [
     /if\(([A-Za-z_$][\w$]*\((?:[^()]|\([^()]*\))*\))\)return`\$\{([A-Za-z_$][\w$]*)\.name\} requires user approval for a dangerous command`/g,
     'if(' + M + '!1&&$1)return`${$2.name} requires user approval for a dangerous command`']
 ];
+
+const REVERT = process.argv.includes('--revert');
+if (REVERT) {
+  // node tools/patch-approve.js --revert [root …]：把 F34 的标记全部还原
+  for (const ROOT of roots) {
+    const WB = path.join(ROOT, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');
+    if (!fs.existsSync(WB)) { console.log(path.basename(ROOT) + ': 无 workbench，跳过'); continue; }
+    let s = fs.readFileSync(WB, 'utf8');
+    const before = s.length, n0 = s.split(M).length - 1;
+    if (!n0) { console.log(path.basename(ROOT) + ': 无标记，跳过'); continue; }
+    // 1) 恒 false 前缀
+    s = s.split(M + '!1&&').join('');
+    // 2) 每调用门（无 !1 的形态）
+    s = s.split(M).join('');
+    // 3) 计划切换
+    s = s.replace(/([A-Za-z_$][\w$]*)!=="never"\?([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),\(\)=>this\.acceptPlanModeSwitch\(([A-Za-z_$][\w$]*)\)\)/g,
+      '$1==="always_run"?$2($3,()=>this.acceptPlanModeSwitch($4))');
+    // 4) 主审批门 / 团队
+    s = s.split('Ht=!0,It=void 0;').join('Ht=!lt&&!$e&&St,It=St?lt?"command":$e:void 0;');
+    s = s.split('(this._settingsService.state.globalSettings.autoApproveTeams||!0)&&setTimeout').join('this._settingsService.state.globalSettings.autoApproveTeams&&setTimeout');
+    fs.writeFileSync(WB, s);
+    const pjP = path.join(ROOT, 'product.json');
+    const pj = JSON.parse(fs.readFileSync(pjP, 'utf8'));
+    const h = crypto.createHash('sha256').update(s).digest('base64').replace(/=+$/, '');
+    for (const k of Object.keys(pj.checksums || {})) if (k.endsWith('vs/workbench/workbench.desktop.main.js')) pj.checksums[k] = h;
+    fs.writeFileSync(pjP, JSON.stringify(pj, null, 2));
+    let ok = 'OK';
+    try { execSync('node --check "' + WB + '"', { stdio: 'pipe' }); } catch (e) { ok = 'FAIL'; }
+    console.log(path.basename(ROOT) + ' → 还原标记 ' + n0 + ' 处 | sha ' + h.slice(0, 12) + ' | check ' + ok + ' | ' + (s.length - before) + 'B');
+  }
+  process.exit(0);
+}
 
 for (const ROOT of roots) {
   const WB = path.join(ROOT, 'out', 'vs', 'workbench', 'workbench.desktop.main.js');

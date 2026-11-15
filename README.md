@@ -253,6 +253,12 @@ node tools/patch-verify.js        # 必须 56/57（1 项 ➖ = 该版本无此�
 
 仍会等你的只有模型侧动作：`ask_question`（模型提问）、`spawn_subagent` 的模型选择、`update_plan` 的计划确认——这些属于交互语义而非权限。
 
+要还原（重新回到「按宿主规则弹确认」）：
+
+```powershell
+node tools/patch-approve.js --revert "$env:APPDATA\Breezell\hot-runtime\<版本-哈希>"
+```
+
 
 ## 13. 免责
 
