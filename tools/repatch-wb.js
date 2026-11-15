@@ -26,15 +26,25 @@ const log = [];
 // ---------- 2. hm-live：模式选择器渲染时把当前模式推给全局 ----------
 (function live() {
   if (s.includes('/*bzl-offline:hm-live*/')) return log.push('hm-live: 已存在');
-  // 锚点：j=<插件状态>.activeMode?<fn>(....pluginId,....id):<chatMode>,
-  const re = /(j=([A-Za-z_$][\w$]*)\.activeMode\?[A-Za-z_$][\w$]*\(\2\.activeMode\.pluginId,\2\.activeMode\.id\):([A-Za-z_$][\w$]*),)/;
-  const m = re.exec(s);
-  if (!m) return log.push('hm-live: MISS（找 j=X.activeMode?...:chatMode, 这一行）');
-  const I = m[2], u = m[3];
-  // ⚠ 必须写成「新增绑定 + IIFE 表达式」：let 声明列表里不能放 try 语句
-  const ins = `${m[1]}/*bzl-offline:hm-live*/_bzlHM=(function(){try{globalThis.BreezellOffline=globalThis.BreezellOffline||{};globalThis.BreezellOffline.__hm=((${I}.activeMode)?("plugin:"+${I}.activeMode.pluginId+"/"+${I}.activeMode.id):("native:"+${u}))}catch(_e){}return 0})(),`;
-  s = s.slice(0, m.index) + ins + s.slice(m.index + m[1].length);
-  log.push(`hm-live: 已打 (状态变量=${I}, chatMode 变量=${u})`);
+  // 形态 A（1.4.52–1.4.55）：j=<插件状态>.activeMode?<fn>(…pluginId,…id):<chatMode>,
+  const reA = /(j=([A-Za-z_$][\w$]*)\.activeMode\?[A-Za-z_$][\w$]*\(\2\.activeMode\.pluginId,\2\.activeMode\.id\):([A-Za-z_$][\w$]*),)/;
+  let m = reA.exec(s);
+  if (m) {
+    const I = m[2], u = m[3];
+    // ⚠ 必须写成「新增绑定 + IIFE 表达式」：let 声明列表里不能放 try 语句
+    const ins = `${m[1]}/*bzl-offline:hm-live*/_bzlHM=(function(){try{globalThis.BreezellOffline=globalThis.BreezellOffline||{};globalThis.BreezellOffline.__hm=((${I}.activeMode)?("plugin:"+${I}.activeMode.pluginId+"/"+${I}.activeMode.id):("native:"+${u}))}catch(_e){}return 0})(),`;
+    s = s.slice(0, m.index) + ins + s.slice(m.index + m[1].length);
+    return log.push(`hm-live: 已打 (形A, 状态变量=${I}, chatMode=${u})`);
+  }
+  // 形态 B（1.4.59+）：<st>.activeMode?<fn>(<st>.activeMode.pluginId,<st>.activeMode.id):<chatMode>
+  //   出现在三元表达式里（O=…?:k.activeMode?…:c），包成 IIFE 替换整个三元
+  const reB = /([A-Za-z_$][\w$]*)\.activeMode\?([A-Za-z_$][\w$]*)\(\1\.activeMode\.pluginId,\1\.activeMode\.id\):([A-Za-z_$][\w$]*)/;
+  m = reB.exec(s);
+  if (!m) return log.push('hm-live: MISS（形态 A/B 都不匹配）');
+  const [all, st, fn, cm] = m;
+  const rep = `(function(){try{globalThis.BreezellOffline=globalThis.BreezellOffline||{};globalThis.BreezellOffline.__hm=((${st}.activeMode)?("plugin:"+${st}.activeMode.pluginId+"/"+${st}.activeMode.id):("native:"+${cm}))}catch(_e){}return ${all}})()`;
+  s = s.slice(0, m.index) + '/*bzl-offline:hm-live*/' + rep + s.slice(m.index + all.length);
+  log.push(`hm-live: 已打 (形B, 状态对象=${st}, chatMode=${cm})`);
 })();
 
 // ---------- 3. hm-gate：pSys 调用点按 __hm 决定是否注入 ----------
@@ -44,7 +54,8 @@ const log = [];
   const m = re.exec(s);
   if (!m) return log.push('hm-gate: MISS（找 BreezellOffline.pSys?…pSys(SYS):SYS）');
   const v = m[1];
-  const rep = `/*bzl-offline:hm-gate*/globalThis.BreezellOffline&&globalThis.BreezellOffline.pSys?(function(_g,_s){var _h="";try{_h=(_g.__hm||"")}catch(_e){}if(!_h)return _s;if(_h.indexOf("native:")===0)return _s;if(_h.indexOf("plugin:")===0&&_h.indexOf("bzl-purge")<0)return _s;return _g.pSys(_s)})(globalThis.BreezellOffline,${v}):${v}`;
+  // 判定顺序：__hm（实时） → pCfg.hostMode（插件写的持久值） → 默认注入
+  const rep = `/*bzl-offline:hm-gate*/globalThis.BreezellOffline&&globalThis.BreezellOffline.pSys?(function(_g,_s){var _h="";try{_h=(_g.__hm||"")}catch(_e){}if(!_h){try{_h=String((_g.pCfg&&_g.pCfg.hostMode)||"")}catch(_e2){}}if(!_h)return _g.pSys(_s);if(_h.indexOf("native:")===0)return _s;if(_h.indexOf("plugin:")===0&&_h.indexOf("bzl-purge")<0)return _s;return _g.pSys(_s)})(globalThis.BreezellOffline,${v}):${v}`;
   s = s.slice(0, m.index) + rep + s.slice(m.index + m[0].length);
   log.push('hm-gate: 已打');
 })();
@@ -57,12 +68,23 @@ const log = [];
   //   1.4.54  H=V=>{let q=D(V);W(q?q.base:V),E.setActiveMode(q)}
   //   1.4.55  U=H=>{let V=k(H);z(V?V.base:H),E.setActiveMode(V)}
   const re = /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)=>\{let ([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\(\2\);([A-Za-z_$][\w$]*)\(\3\?\3\.base:\2\),([A-Za-z_$][\w$]*)\.setActiveMode\(\3\)\}/;
-  const m = re.exec(s);
-  if (!m) return log.push('命令桥: MISS（找 X=V=>{let q=F(V);S(q?q.base:V),E.setActiveMode(q)}）');
-  const [, name, V, q, finder, setMode, svc] = m;
-  // 服务访问器：组件内通常是 i（= Po()/ys() 的返回值），取不到就退回安全的 optional 探测
-  const svcAcc = /\bi\.get\("IBreezellPluginUiService"\)/.test(s) ? 'i' : 'i';
-  const rep = `${name}=${V}=>{/*bzl-offline:cmd*/try{var _bq=${finder}(${V}),_bv=_bq?(_bq.pluginId?("plugin:"+_bq.pluginId+"/"+_bq.id):("native:"+_bq.base)):("native:"+${V});${svcAcc}.get("ICommandService").executeCommand("bzlPurge.hostmode",_bv)}catch(_e){}let ${q}=${finder}(${V});${setMode}(${q}?${q}.base:${V}),${svc}.setActiveMode(${q})}`;
+  let m = re.exec(s);
+  let rep;
+  if (m) {
+    const [, name, V, q, finder, setMode, svc] = m;
+    rep = `${name}=${V}=>{/*bzl-offline:cmd*/try{var _bq=${finder}(${V}),_bv=_bq?(_bq.pluginId?("plugin:"+_bq.pluginId+"/"+_bq.id):("native:"+_bq.base)):("native:"+${V});i.get("ICommandService").executeCommand("bzlPurge.hostmode",_bv)}catch(_e){}let ${q}=${finder}(${V});${setMode}(${q}?${q}.base:${V}),${svc}.setActiveMode(${q})}`;
+  } else {
+    // 形态 B（1.4.59+）：$=Y=>{if(u.locked){…}let ne=_(Y);V(ne?ne.base:Y),I.setActiveMode(ne)}
+    const reB = /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)=>\{if\(([A-Za-z_$][\w$]*)\.locked\)\{[\s\S]{0,220}?let ([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\((\2)\);([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*)\?\8\.base:\2\),([A-Za-z_$][\w$]*)\.setActiveMode\(([A-Za-z_$][\w$]*)\)\}/;
+    const mb = reB.exec(s);
+    if (!mb) return log.push('命令桥: MISS（形态 A/B 都不匹配）');
+    const [, name, V, lockObj, q, finder, , setMode, , svc] = mb;
+    // 在 "let q=finder(V);" 前插入通知，保留原逻辑
+    const bodyStart = mb.index + mb[0].indexOf(`let ${q}=${finder}(${V});`);
+    const inject = `try{var _bq2=${finder}(${V}),_bv2=_bq2?("plugin:"+_bq2.pluginId+"/"+_bq2.id):("native:"+${V});i.get("ICommandService").executeCommand("bzlPurge.hostmode",_bv2)}catch(_e){}`;
+    s = s.slice(0, bodyStart) + '/*bzl-offline:cmd*/' + inject + s.slice(bodyStart);
+    return log.push(`命令桥: 已打 (形B, 回调=${name}, 解析器=${finder})`);
+  }
   s = s.slice(0, m.index) + rep + s.slice(m.index + m[0].length);
   log.push('命令桥: 已打');
 })();
@@ -84,3 +106,10 @@ if (s.length !== before) {
   log.push('无改动（四个补丁均已存在）');
 }
 console.log(log.join('\n'));
+
+// 第五个补丁：审批全放行（F34）。单独脚本，热更新后与上面四个一起重打。
+try {
+  execSync('node "' + path.join(__dirname, 'patch-approve.js') + '" "' + ROOT + '"', { stdio: 'inherit' });
+} catch (e) {
+  console.log('patch-approve 失败: ' + String(e.message || e).slice(0, 200));
+}

@@ -234,10 +234,25 @@ tools/patch-verify.js 逐落点验收 45 项
 宿主每次热更新都会换一份 `workbench.desktop.main.js`，四个补丁会被冲掉（3.x 自注入不受影响）：
 
 ```powershell
-node tools/repatch-wb.js "$env:APPDATA\Breezell\hot-runtime\<版本-哈希>"
-node tools/patch-verify.js        # 必须 45/45，任一 ❌ = 那个点没生效
-# 重启 Breezell 后看 selftest: armWhy=ok / bench 8/8
+node tools/repatch-wb.js "$env:APPDATA\Breezell\hot-runtime\<版本-哈希>"   # 内部会自动串 patch-approve
+node tools/patch-verify.js        # 必须 56/57（1 项 ➖ = 该版本无此函数），任一 ❌ = 那个点没生效
+# 重启 Breezell 后看 selftest: armWhy=ok / bench 8/8 / host=ok
 ```
+
+### 12.1 审批全放行（F34，`tools/patch-approve.js`）
+
+宿主「自动批准」不是全放行：即使 `autoApprove[类别]` 全开，还会被三类硬门压掉，表现就是「开了 auto 仍要手点继续」：
+
+| 门 | 位置 | 触发条件 |
+|---|---|---|
+| 危险命令地板 | `TEo(...)`（1.4.55 及更早为 `DSo/F4o`） | 命中删目录/删除范围不可预知等模式 |
+| 敏感路径地板 | `_editApprovalFloorOfCall` → `I1i(...)` | `.breezell/rules|skills|memories`、`.git/hooks`、`.vscode`、`.ssh`、shell profile、递归删工作区/家目录 |
+| 批量预检 | 单响应多工具时的 `autoApprove[类别]` 判定 | 任一工具不满足即整批停下等用户 |
+
+`patch-approve.js` 用标记 `/*bzl-offline:approve-all*/` 把这几处条件改成恒 false，同时把 `spawn_team` 的 `autoApproveTeams`、`plan_mode_switch` 的偏好判定改成「非 never 即自动接受」。三种宿主形态（1.4.5 老架构 / 1.4.55 / 1.4.59）都有对应锚点，逐根打印命中，回写 `product.json` 校验和并跑 `node --check`。
+
+仍会等你的只有模型侧动作：`ask_question`（模型提问）、`spawn_subagent` 的模型选择、`update_plan` 的计划确认——这些属于交互语义而非权限。
+
 
 ## 13. 免责
 

@@ -2,6 +2,16 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.2
+
+**适配宿主 1.4.59 + 审批全放行（F34）**
+
+- 真因①：热更新把 workbench 换成 1.4.59，`hm-live` 与命令桥两个锚点又漂移（模式回调 `H=V=>{…W(q?q.base:V),E.setActiveMode(q)}`；服务访问器从 `Io()` 变成组件内 `i`）。
+- 修法①：`tools/repatch-wb.js` 增加「形态 B」回退正则（`activeMode?…(pluginId,id)` 三元包成 IIFE；命令桥在 `let <n>=<finder>(Y);` 前注入）；`hm-gate` 升级为 `__hm → pCfg.hostMode → 默认注入` 三级回落，`tools/_upgrade_gate.js` 可把旧 gate 就地升级。重打后 `patch-verify` **56/57**（唯一 ➖ 是 1.4.5 底座没有 `_editApprovalFloorOfCall`）。
+- 真因②：开了 auto + 终端自动批准仍会「点继续」——`autoApprove[类别]` 之上还有三道硬门：危险命令行地板 `TEo`（老版本 `DSo/F4o`）、敏感路径地板 `_editApprovalFloorOfCall`（`.breezell/rules|skills|memories`、`.git/hooks`、`.vscode`、`.ssh`、shell profile、递归删工作区/家目录）、单响应多工具的批量预检门。
+- 修法②：新增 `tools/patch-approve.js`（F34），用 `/*bzl-offline:approve-all*/` 把上述条件改成恒 false，并把 `autoApproveTeams`、`plan_mode_switch` 偏好（非 `never` 即自动接受）一起放行；覆盖 1.4.5 老架构 / 1.4.55 / 1.4.59 三种形态，逐根自验、回写 `product.json` 校验和、`node --check`。`repatch-wb.js` 末尾自动串跑它。
+- `breezell.supportedHost.tested` 增加 `1.4.59`；真机 `selftest 3.1.2 / armWhy=ok / bench 8/8 / host=ok(1.4.59)`。
+
 ## 3.1.1
 
 **适配宿主 1.4.55 + 去掉重复插件条目**

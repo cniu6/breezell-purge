@@ -206,3 +206,34 @@ lastinject 2026-11-11T14:51:15Z · mode=bzl-ctf · len=17943/20000 · personaLen
 ```
 
 `lastinject` 在发送消息后即时刷新，说明 `registerSendHandler` 自注入在 1.4.55 上正常工作；此版本 `selfInject=true`，桥配置 `sysLen=0 / promptMode=append` 属预期（桥不参与）。
+
+## 13. 1.4.59 适配记录（含审批全放行 F34）
+
+热更新把 workbench 换到 `1.4.59`（`1.4.59-ba945f5a4c5f`，底座 1.4.5，previous 1.4.55），四个桥补丁全丢，同时两个锚点再次漂移：
+
+| 补丁 | 1.4.55 写法 | 1.4.59 写法 | 处理 |
+|---|---|---|---|
+| base 白名单 | `eCo=["normal","plan","analyze","agent"]` | 同形，位置 @2810892 | 直接命中 |
+| hm-live | 三元 `activeMode?…` | 同形（状态对象 `k`、chatMode `c`） | 直接命中 |
+| 命令桥 | `U=H=>{let V=k(H);z(…),E.setActiveMode(V)}` | `$=Y=>{…let ne=_(Y);V(ne?ne.base:Y),I.setActiveMode(ne)}` | 形态 B 回退（`let <n>=<finder>(Y);` 前注入） |
+| hm-gate | `__hm` 单级判定 | 需要三级回落 | `_upgrade_gate.js` 就地升级 |
+
+审批链（用户反馈「开了 auto 还要点继续」的真实原因）：
+
+```text
+autoApprove[类别] 为真
+   ├─ 危险命令地板 TEo(command, roots, cwd, home)      命中 → autoApproveHeld:"command"
+   ├─ 敏感路径地板 _editApprovalFloorOfCall → I1i(...) 命中 → autoApproveHeld:"agentConfig|autoRun|credentials|broadDelete"
+   └─ 批量预检（单响应多工具）autoApprove[类别]        任一不满足 → 整批停下
+```
+
+`tools/patch-approve.js`（F34）用标记 `/*bzl-offline:approve-all*/` 把三处条件改成恒 false，并放行 `spawn_team`（`autoApproveTeams`）与 `plan_mode_switch`（非 `never` 即自动接受）。实测：
+
+```text
+app                 → 主审批门 MISS(旧架构) | 批量门 已打 | 每调用门 已打 | 计划切换 已打 | check OK
+1.4.55-4add42f765ae → 批量门 已打 | 地板 已打 | 每调用门 已打 | 计划切换 已打 | check OK
+1.4.59-ba945f5a4c5f → 主审批门 已打 | 批量门 已打 | 地板 已打 | 每调用门 已打 | 计划切换 已打 | check OK
+tools/patch-verify.js → 56/57（➖ = 1.4.5 底座无 _editApprovalFloorOfCall）
+```
+
+仍在用户侧的动作只有交互语义：`ask_question`、`spawn_subagent` 的模型选择、`update_plan` 的计划确认。
