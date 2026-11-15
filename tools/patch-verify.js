@@ -31,6 +31,8 @@ for(const r of roots){
   add(r.name,'wb 审批: 敏感路径地板已闭', wb.includes('_editApprovalFloorOfCall') ? /approve-all\*\/!1&&this\._editApprovalFloorOfCall\(/.test(wb) : null, wb.includes('_editApprovalFloorOfCall')?'':'该版本无此函数');
   add(r.name,'wb 审批: 计划切换自动接受', /approve-all\*\/[A-Za-z_$][\w$]*!=="never"\?/.test(wb));
   add(r.name,'wb 审批: 子代理模型自动', wb.includes('subagentModelAuto!==!1') ? /auto:\/\*bzl-offline:approve-all\*\/!0/.test(wb) : null, wb.includes('subagentModelAuto!==!1')?'':'该版本无此开关');
+  add(r.name,'wb 审批: 计划卡片自动执行', /notifyPlanApproval:\/\*bzl-offline:approve-all\*\/!1/.test(wb));
+  add(r.name,'wb 审批: 计划执行判定钉开', !wb.includes('autoExecutePlanCard===!0') && /=\/\*bzl-offline:approve-all\*\/!0/.test(wb));
   add(r.name,'exhost 白名单含 entanglement', eh.includes('"entanglement"'));
   add(r.name,'worker 白名单含 entanglement', wk.includes('"entanglement"'));
   add(r.name,'main.app 白名单', mapp? mapp.includes('"entanglement"') : null, mapp?'':'无 main.app.js');

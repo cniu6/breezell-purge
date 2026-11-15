@@ -27,6 +27,7 @@ const M = '/*bzl-offline:approve-all*/';
 // 明文规则（形态 A：1.4.59+ 每调用门）
 const RULES = [
   ['主审批门', 'Ht=!lt&&!$e&&St,It=St?lt?"command":$e:void 0;', 'Ht=' + M + '!0,It=void 0;'],
+  ['计划卡片自动执行', 'notifyPlanApproval:!n.autoExecutePlanCard', 'notifyPlanApproval:' + M + '!1'],
   ['团队自动批准', 'this._settingsService.state.globalSettings.autoApproveTeams&&setTimeout',
     '(this._settingsService.state.globalSettings.autoApproveTeams||!0)&&setTimeout']
 ];
@@ -45,6 +46,10 @@ const RX = [
   ['计划切换自动接受',
     /([A-Za-z_$][\w$]*)==="always_run"\?([A-Za-z_$][\w$]*)\(([A-Za-z_$][\w$]*),\(\)=>this\.acceptPlanModeSwitch\(([A-Za-z_$][\w$]*)\)\)/g,
     M + '$1!=="never"?$2($3,()=>this.acceptPlanModeSwitch($4))'],
+  // 计划卡片：把「自动执行」判定钉成开（UI 侧消费点）
+  ['计划卡片自动执行(UI)',
+    /([A-Za-z_$][\w$]*)=([A-Za-z_$][\w$]*)\.globalSettings\.autoExecutePlanCard===!0/g,
+    '$1=' + M + '!0'],
   // 子代理模型：不再询问，直接自动选（1.4.59+ 才有）
   ['子代理模型自动',
     /auto:this\._settingsService\.state\.globalSettings\.subagentModelAuto!==!1/g,
