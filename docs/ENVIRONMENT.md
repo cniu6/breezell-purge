@@ -237,3 +237,36 @@ tools/patch-verify.js → 56/57（➖ = 1.4.5 底座无 _editApprovalFloorOfCall
 ```
 
 仍在用户侧的动作只有交互语义：`ask_question`、`spawn_subagent` 的模型选择、`update_plan` 的计划确认。
+
+## 14. 1.4.63 适配记录（2026-11-21）
+
+热更新到 `1.4.63-38d6a9b72a12`（底座 **1.4.6**），workbench 换成新 bundle，四个桥补丁 + 审批补丁全丢，且两处结构改写：
+
+| 补丁 | 1.4.59 写法 | 1.4.63 写法 | 处理 |
+|---|---|---|---|
+| base 白名单 | `eCo=[...]` | 同形 @2821804 | 直接命中 |
+| hm-live | 三元 `activeMode?…` | 同形（状态对象 `k`、chatMode `c`） | 形态 B |
+| **hm-gate** | 值形态 `…pSys(V):V` | **push 形态** `nt.push(…pSys(L):L)` | 新增「形 C」 |
+| 命令桥 | `$=Y=>{…}` | 同形（回调 `K`、解析器 `_`） | 形态 B |
+| 主审批门 | `Ht=!lt&&!$e&&St,…` | `ct=pt||Ot&&!Tt,Dt=Tt?"allowedCommand":void 0;` | 由「每调用门」闭掉 `if(!ct)` |
+| 批量门 | `if(cat&&!…autoApprove[cat])return` | `if(cat&&!…autoApprove[cat]){` | 正则放宽为 `\)(return|\{)` |
+| 敏感路径地板 | `_editApprovalFloorOfCall()` | 已不存在（内联进 `ct` 的 `Ot/_isDangerousTerminalText`） | 标 ➖ |
+
+重打结果：
+
+```text
+1.4.63-38d6a9b72a12 → 白名单OK | hm-live 形B | hm-gate 形A/C | 命令桥 形B
+                     → 审批: 批量门 已打1 | 每调用门 已存在 | 计划/团队/子代理/agent_mode 已存在
+                     → sha 同步 | node --check OK
+app (1.4.6 底座)   → 审批: 批量门 ➖(无) | 每调用门 已闭 | check OK
+tools/patch-verify.js → 46/49   ❌=0（3 项 ➖：两版均无批量门/_editApprovalFloorOfCall）
+```
+
+真机自检（重启后）：
+
+```json
+{ "version": "3.1.3", "armWhy": "ok", "benchOk": 8, "host": { "version": "1.4.63", "level": "ok", "supported": true } }
+```
+
+注意：`hm-gate` 命中形态会在 `repatch-wb.js` 输出里标注（形 A 三元 / 形 C push）；下次宿主改这两个调用点的写法时，先看这一行是不是 MISS 再查别的。
+

@@ -34,10 +34,10 @@ const RULES = [
 
 // 正则规则（跨版本通用）
 const RX = [
-  // 批量预检：autoApprove 类别门
+  // 批量预检：autoApprove 类别门（1.4.63 起形如 if(cat&&!…autoApprove[cat]){…}）
   ['批量autoApprove门',
-    /if\(([A-Za-z_$][\w$]*)&&!this\._settingsService\.state\.globalSettings\.autoApprove\[\1\]\)return/g,
-    'if(' + M + '!1&&$1&&!this._settingsService.state.globalSettings.autoApprove[$1])return'],
+    /if\(([A-Za-z_$][\w$]*)&&!this\._settingsService\.state\.globalSettings\.autoApprove\[\1\]\)(return|\{)/g,
+    'if(' + M + '!1&&$1&&!this._settingsService.state.globalSettings.autoApprove[$1])$2'],
   // 敏感路径/it 地板
   ['敏感路径地板',
     /if\(this\._editApprovalFloorOfCall\(([^()]*(?:\([^()]*\))?[^()]*)\)\)return/g,

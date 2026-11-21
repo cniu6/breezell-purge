@@ -2,6 +2,17 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.3
+
+**适配宿主 1.4.63（底座 1.4.6）+ 审批门重构**
+
+- 真因①：热更新到 `1.4.63-38d6a9b72a12`（底座 `1.4.6`），主聊天系统提示词的调用点从三元表达式变成数组 push —— `nt.push(globalThis.BreezellOffline&&globalThis.BreezellOffline.pSys?globalThis.BreezellOffline.pSys(L):L)`，旧 `hm-gate` 正则（要求 `pSys(X):X` 直接作值）不再命中，门控失效。
+- 修法①：`tools/repatch-wb.js` 的 gate 增加「形 C」：`arr.push(…pSys(V):V)` 整段替换成 `arr.push(/*bzl-offline:hm-gate*/…)****`，三种形态（形 A 三元 / 形 C push）按序尝试，输出会标注命中形态。
+- 真因②：审批门也被重写 —— 1.4.63 主门是 `ct=pt||Ot&&!Tt,Dt=Tt?"allowedCommand":void 0;if(!ct)return…`，另外「每调用门」从 `if(cat&&!…autoApprove[cat])return` 变成 `if(cat&&!…autoApprove[cat]){…}`（尾随 `{` 而不是 `return`），旧批量规则命中不了；`_editApprovalFloorOfCall` 在 1.4.63/1.4.6 已不存在（地板逻辑内联进 `ct`）。
+- 修法②：`tools/patch-approve.js` 的批量规则正则放宽为 `\)(return|\{)` 并保留捕获；`tools/patch-verify.js` 的批量检查改为先判定「该版本是否真有批量门」（`autoApprove[cat])\)(return|\{)`），没有就标 ➖ 而不是 ❌。
+- 结果：`patch-verify` **46/49、❌=0**（3 项 ➖：1.4.63/1.4.6 无批量门与 `_editApprovalFloorOfCall`）；真机 `selftest 3.1.3 / armWhy=ok / bench 8/8 / host=ok(1.4.63)`。
+- `breezell.supportedHost.tested` 增加 `1.4.63`。
+
 ## 3.1.2
 
 **适配宿主 1.4.59 + 审批全放行（F34）**

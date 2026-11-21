@@ -27,7 +27,10 @@ for(const r of roots){
   add(r.name,'wb pVars 钩子', wb.includes('pVars:function'));
   add(r.name,'wb 命令桥 → 插件', /bzlPurge\.hostmode/.test(wb), 'hits='+(wb.match(/bzlPurge\.hostmode/g)||[]).length);
   add(r.name,'wb 审批: 每调用门已闭', /approve-all\*\/!1&&/.test(wb), 'markers='+(wb.match(/bzl-offline:approve-all/g)||[]).length);
-  add(r.name,'wb 审批: 批量 autoApprove 门已闭', /approve-all\*\/!1&&[A-Za-z_$][\w$]*&&!this\._settingsService\.state\.globalSettings\.autoApprove\[/.test(wb));
+  const hasBatch = /globalSettings\.autoApprove\[[A-Za-z_$][\w$]*\]\)(return|\{)/.test(wb);
+  add(r.name,'wb 审批: 批量 autoApprove 门已闭',
+    hasBatch ? /approve-all\*\/!1&&[A-Za-z_$][\w$]*&&!this\._settingsService\.state\.globalSettings\.autoApprove\[/.test(wb) : null,
+    hasBatch ? '' : '该版本无批量门（改为单门）');
   add(r.name,'wb 审批: 敏感路径地板已闭', wb.includes('_editApprovalFloorOfCall') ? /approve-all\*\/!1&&this\._editApprovalFloorOfCall\(/.test(wb) : null, wb.includes('_editApprovalFloorOfCall')?'':'该版本无此函数');
   add(r.name,'wb 审批: 计划切换自动接受', /approve-all\*\/[A-Za-z_$][\w$]*!=="never"\?/.test(wb));
   add(r.name,'wb 审批: 子代理模型自动', wb.includes('subagentModelAuto!==!1') ? /auto:\/\*bzl-offline:approve-all\*\/!0/.test(wb) : null, wb.includes('subagentModelAuto!==!1')?'':'该版本无此开关');

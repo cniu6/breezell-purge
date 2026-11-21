@@ -50,14 +50,24 @@ const log = [];
 // ---------- 3. hm-gate：pSys 调用点按 __hm 决定是否注入 ----------
 (function gate() {
   if (s.includes('/*bzl-offline:hm-gate*/')) return log.push('hm-gate: 已存在');
-  const re = /globalThis\.BreezellOffline&&globalThis\.BreezellOffline\.pSys\?globalThis\.BreezellOffline\.pSys\(([A-Za-z_$][\w$]*)\):\1/;
-  const m = re.exec(s);
-  if (!m) return log.push('hm-gate: MISS（找 BreezellOffline.pSys?…pSys(SYS):SYS）');
-  const v = m[1];
   // 判定顺序：__hm（实时） → pCfg.hostMode（插件写的持久值） → 默认注入
-  const rep = `/*bzl-offline:hm-gate*/globalThis.BreezellOffline&&globalThis.BreezellOffline.pSys?(function(_g,_s){var _h="";try{_h=(_g.__hm||"")}catch(_e){}if(!_h){try{_h=String((_g.pCfg&&_g.pCfg.hostMode)||"")}catch(_e2){}}if(!_h)return _g.pSys(_s);if(_h.indexOf("native:")===0)return _s;if(_h.indexOf("plugin:")===0&&_h.indexOf("bzl-purge")<0)return _s;return _g.pSys(_s)})(globalThis.BreezellOffline,${v}):${v}`;
-  s = s.slice(0, m.index) + rep + s.slice(m.index + m[0].length);
-  log.push('hm-gate: 已打');
+  const gateOf = (v) => `/*bzl-offline:hm-gate*/globalThis.BreezellOffline&&globalThis.BreezellOffline.pSys?(function(_g,_s){var _h="";try{_h=(_g.__hm||"")}catch(_e){}if(!_h){try{_h=String((_g.pCfg&&_g.pCfg.hostMode)||"")}catch(_e2){}}if(!_h)return _g.pSys(_s);if(_h.indexOf("native:")===0)return _s;if(_h.indexOf("plugin:")===0&&_h.indexOf("bzl-purge")<0)return _s;return _g.pSys(_s)})(globalThis.BreezellOffline,${v}):${v}`;
+
+  // 形 A：三元表达式（1.4.52 ~ 1.4.59）
+  const reA = /globalThis\.BreezellOffline&&globalThis\.BreezellOffline\.pSys\?globalThis\.BreezellOffline\.pSys\(([A-Za-z_$][\w$]*)\):\1/;
+  const mA = reA.exec(s);
+  if (mA) {
+    s = s.slice(0, mA.index) + gateOf(mA[1]) + s.slice(mA.index + mA[0].length);
+    return log.push('hm-gate: 已打 (形A)');
+  }
+  // 形 C：数组 push 形态（1.4.63+）
+  const reC = /([A-Za-z_$][\w$]*)\.push\(globalThis\.BreezellOffline&&globalThis\.BreezellOffline\.pSys\?globalThis\.BreezellOffline\.pSys\(([A-Za-z_$][\w$]*)\):\2\)/;
+  const mC = reC.exec(s);
+  if (mC) {
+    s = s.slice(0, mC.index) + `${mC[1]}.push(${gateOf(mC[2])})` + s.slice(mC.index + mC[0].length);
+    return log.push(`hm-gate: 已打 (形C, 数组=${mC[1]}, 变量=${mC[2]})`);
+  }
+  return log.push('hm-gate: MISS（找 BreezellOffline.pSys?…pSys(SYS):SYS）');
 })();
 
 // ---------- 4. 命令桥：模式变化通知插件（写配置 + 立刻 syncSystem） ----------
