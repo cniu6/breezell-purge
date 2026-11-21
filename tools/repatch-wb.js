@@ -123,3 +123,20 @@ try {
 } catch (e) {
   console.log('patch-approve 失败: ' + String(e.message || e).slice(0, 200));
 }
+
+// 自愈：若仍有落点缺失（偶发 MISS，重跑一次即可命中），自动复跑一轮（最多一次）
+if (!process.env.BZL_REPATCH_RETRY) {
+  const cur = fs.readFileSync(WB, 'utf8');
+  const need = ['/*bzl-offline:hm-live*/', '/*bzl-offline:hm-gate*/', 'bzlPurge.hostmode', '/*bzl-offline:approve-all*/'];
+  const missing = need.filter(m => !cur.includes(m));
+  if (missing.length) {
+    console.log('\n⚠ 仍缺 ' + missing.length + ' 个落点（' + missing.join(' , ') + '）→ 自动复跑一轮');
+    try {
+      execSync('node "' + __filename + '" "' + ROOT + '"', { stdio: 'inherit', env: Object.assign({}, process.env, { BZL_REPATCH_RETRY: '1' }) });
+    } catch (e) {
+      console.log('复跑失败: ' + String(e.message || e).slice(0, 200));
+    }
+  } else {
+    console.log('\n✔ 四个 workbench 落点 + 审批全放行 全部就位');
+  }
+}

@@ -2,6 +2,21 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.5
+
+**适配宿主 1.4.64（底座 1.4.6）+ 重打脚本自愈**
+
+- 现场：`hot-runtime\current.json` → `1.4.64 / 1.4.64-1441667b08fc`，`previousVersion 1.4.63`；workbench 33,864,278 B（比 1.4.63 大 22,573 B）；`patch-verify` 首轮 `51/69 · ❌=14`（新 bundle 没有我们任何标记）。
+- 锚点核对（1.4.64 vs 1.4.63）：
+  - base 白名单同一形态 `["normal","plan","analyze","agent"]` → 已补 `entanglement` @2,821,846。
+  - `hm-live` 形态 B 命中（状态对象 `k`、chatMode `c`）；`hm-gate` 形 A（三元 `…pSys(L):L`）命中，数组名 `ot`。
+  - 命令桥形态 B 命中（回调 `K`、解析器 `_`）。
+  - 审批：主门从 `ct=pt||Ot&&!Tt` 又改了一版（`dt=pt||Ot&&!Tt,Dt=Tt?"allowedCommand":void 0`），`patch-approve` 的「每调用门」兜底命中 —— 注入成 `if(/*bzl-offline:approve-all*/!1&&!dt)return …`，危险命令、批量门、计划卡片/切换、子代理、agent_mode_switch、团队批准共 **7 处** `approve-all` 标记。
+- 真因（工具侧）：新 bundle 上偶发「第一轮 `hm-gate: MISS`、第二轮同一条正则命中」，说明存在读取/写盘时序窗口。
+- 修法：`tools/repatch-wb.js` 末尾加自愈 —— 跑完四个 workbench 落点 + `patch-approve` 后，重读文件检查 4 个标记，缺任何一个就自动复跑一轮（`BZL_REPATCH_RETRY=1` 防死循环），并打印「✔ 全部就位 / ⚠ 仍缺」。
+- 结果：`patch-verify` **65/69 · ❌=0**（4 个 ➖ 是该版本本身没有的形态：1.4.64 无 `_editApprovalFloorOfCall`、install 底座无批量门等）；三根校验和全 `match`；`node --check OK`。
+- `breezell.supportedHost.tested` 增列 `1.4.64`。
+
 ## 3.1.4
 
 **提示词 base64 化（防仓库扫描）+ 自检可核对来源**

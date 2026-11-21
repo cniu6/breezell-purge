@@ -270,3 +270,37 @@ tools/patch-verify.js → 46/49   ❌=0（3 项 ➖：两版均无批量门/_edi
 
 注意：`hm-gate` 命中形态会在 `repatch-wb.js` 输出里标注（形 A 三元 / 形 C push）；下次宿主改这两个调用点的写法时，先看这一行是不是 MISS 再查别的。
 
+## 15. 1.4.64 适配记录（2026-11-21 深夜）
+
+热更新到 `1.4.64-1441667b08fc`（底座仍是 **1.4.6**，`previousVersion 1.4.63`）。workbench `33,864,278 B`，比 1.4.63 大 `22,573 B`；四个桥补丁 + 审批补丁全部丢失（`patch-verify` 首轮 `51/69 · ❌=14`）。
+
+| 补丁 | 1.4.63 | 1.4.64 | 结果 |
+|---|---|---|---|
+| base 白名单 | `["normal","plan","analyze","agent"]` @2821804 | 同形 @**2,821,846** | 直接命中 |
+| hm-live | 三元 `activeMode?…`（状态 `k`、chatMode `c`） | 同形（`k` / `c`） | 形态 B 命中 |
+| **hm-gate** | push 形态 `nt.push(…pSys(L):L)` | push 形态，数组名改 **`ot`**，变量仍 `L` | 形 A（三元片段）命中 |
+| 命令桥 | `$=Y=>{…}`（回调 `$`、解析器 `_`） | 回调 **`K`**、解析器 `_` | 形态 B 命中 |
+| 主审批门 | `ct=pt||Ot&&!Tt,Dt=Tt?"allowedCommand":void 0;` | 改名 `dt=pt||Ot&&!Tt,Dt=Tt?"allowedCommand":void 0;`（`Ot=!pt&&!!ot&&A6o(...)`） | 主门未单独匹配，由「每调用门」闭掉 |
+| 每调用门 | `if(!ct)return …(Awaiting user permission...)` | 同形 | `if(/*bzl-offline:approve-all*/!1&&!dt)return …` ✔ |
+| 其余审批项 | 危险命令/批量门/计划卡片/计划切换/子代理/agent_mode/团队 | 全部同形 | 共 **7 处** `approve-all` 标记 |
+
+重打结果：
+
+```text
+1.4.64-1441667b08fc → 白名单 @2821846 | hm-live 形B(k,c) | hm-gate 形A(ot,L) | 命令桥 形B(K,_)
+                     → 审批: 每调用门 已打 | 批量门 已打1 | 计划卡片(UI) 已打1 | 计划切换 已打1
+                              agent_mode 已打1 | 子代理自动 已打1 | 团队 已打 | 主审批门 MISS（由每调用门兜底）
+                     → 校验和 6YNbrFE2zt/hur … 同步 | node --check OK
+tools/patch-verify.js → 65/69   ❌=0（4 项 ➖：1.4.64 无 _editApprovalFloorOfCall、install 底座无批量门等）
+```
+
+真机自检（重启后）：
+
+```json
+{ "version": "3.1.5", "armWhy": "ok", "benchOk": 8, "personaSrc": "vault", "personaLen": 16833,
+  "host": { "version": "1.4.64", "level": "ok", "supported": true } }
+```
+
+**这次学到的坑**：1.4.64 新 bundle 上出现「第一轮 `hm-gate: MISS`、第二轮同一条正则就命中」的时序现象。`repatch-wb.js` 已加自愈：跑完五个补丁后重读文件核对 4 个标记，缺任何一个就自动复跑一轮（`BZL_REPATCH_RETRY=1` 防死循环），末尾打印 `✔ 全部就位` 或 `⚠ 仍缺 …`。以后只看这行就能判断要不要人工介入。
+
+
