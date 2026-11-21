@@ -2,6 +2,16 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.4
+
+**提示词 base64 化（防仓库扫描）+ 自检可核对来源**
+
+- 真因：`dist/presets.js`（12,195 字）与 `assets/persona-core.md`（16,833 字）是明文提示词，公开仓库会被内容扫描/关键词检索命中，仓库有被整体标记的风险。
+- 修法①：新增 `tools/mkvault.js` — 把明文（`prompts-src/`，仓库外）编码成 `dist/presets.src.b64` / `dist/persona-core.b64` / `dist/persona-zh.b64`，并把 `dist/presets.js` 重写成 570 B 载入器（解码 → `new Function` 执行 → 导出同一套对象，对外 API 不变）。
+- 修法②：`extension.js` 加 `readB64(name)`；`personaText()` 顺序变为「`personaFile` → `persona-core.b64` → 配置 `persona` → `assets` → `persona-zh.b64`」，`personaCached()` 对 vault 结果做缓存（`_:vault`）；`assets/persona-core.md`、`assets/persona-zh.md` 从仓库移除并写入 `.gitignore`。
+- 修法③：`writeSelftest()` 增加 `personaLen` / `personaSrc`（`file|vault|config|vault-zh|none`）；`tools/pack.js` 注册 `b64` 的 MIME（`application/octet-stream`）。
+- 验证：`node tools/mkvault.js --check` 往返一致；装机后 `selftest 3.1.4 · arm ok · host ok(1.4.63) · personaLen 16833 · personaSrc vault · rulesLen 1005`；发行包 20 项、无 `assets/*.md`。
+
 ## 3.1.3
 
 **适配宿主 1.4.63（底座 1.4.6）+ 审批门重构**

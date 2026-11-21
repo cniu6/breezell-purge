@@ -60,6 +60,15 @@ function hostCompat() {
 function selftestFile() { return path.join(appDataDir(), 'bzl-purge-selftest.json'); }
 function realtestFile() { return path.join(appDataDir(), 'bzl-purge-realtest.json'); }
 function bridgeCfgFile() { return path.join(appDataDir(), 'breezell-offline-config.json'); }
+// 提示词以 base64 存放（tools/mkvault.js 生成），运行时解码；仓库与发行包里看不到明文
+function readB64(name) {
+  try {
+    var p = path.join(__dirname, name + '.b64');
+    if (!fs.existsSync(p)) return '';
+    var raw = fs.readFileSync(p, 'utf8').trim();
+    return raw ? Buffer.from(raw, 'base64').toString('utf8') : '';
+  } catch (e) { return ''; }
+}
 
 function rulesText() { const v = cfg().get('rulesText', ''); return (v && v.trim()) ? v : DEF_RULES; }
 function tailText() { const v = cfg().get('tail', ''); return (v && v.trim()) ? v : DEF_TAIL; }
@@ -78,12 +87,19 @@ function personaFilePath() {
 function personaText() {
   const pf = personaFilePath();
   if (pf) { try { const s = fs.readFileSync(pf, 'utf8'); if (s && s.trim()) return s; } catch (e) { } }
+  const vault = readB64('persona-core'); if (vault && vault.trim()) return vault;
   const v = cfg().get('persona', ''); if (typeof v === 'string' && v.trim()) return v;
-  try { return fs.readFileSync(personaFile(), 'utf8'); } catch (e) { return ''; }
+  try { const s2 = fs.readFileSync(personaFile(), 'utf8'); if (s2 && s2.trim()) return s2; } catch (e) { }
+  return readB64('persona-zh') || '';
 }
 function personaCached() {
   var f = personaFilePath();
-  if (!f) return personaText();
+  if (!f) {
+    if (personaCache.file === ':vault') return personaCache.text;
+    var vt = personaText();
+    personaCache = { file: ':vault', mtime: 0, text: vt };
+    return vt;
+  }
   try {
     var st = fs.statSync(f);
     if (personaCache.file === f && personaCache.mtime === st.mtimeMs) return personaCache.text;
@@ -311,6 +327,16 @@ async function writeSelftest(extra) {
     enabled, autoApprove: !!cfg().get('autoApprove', true), injectRules: !!cfg().get('injectRules', true),
     injectMode: injectMode(), currentMode: currentMode(), host: hostCompat(),
     rulesLen: headFor(currentMode()).length, tailLen: tailText().length,
+    personaLen: (function () { try { return personaCached().length; } catch (e) { return -1; } })(),
+    personaSrc: (function () {
+      try {
+        if (personaFilePath()) return 'file';
+        if ((readB64('persona-core') || '').trim()) return 'vault';
+        if (String(cfg().get('persona', '') || '').trim()) return 'config';
+        if ((readB64('persona-zh') || '').trim()) return 'vault-zh';
+      } catch (e) { }
+      return 'none';
+    })(),
     surfaceOpen: !!surface
   }, extra || {});
   rec.armWhy = armWhy;

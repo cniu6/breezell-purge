@@ -2,7 +2,7 @@
   "name": "breezell-purge",
   "displayName": "BZL 破甲",
   "description": "Breezell 单插件自注入：BZL-CTF / BZL-Run / BZL-Ent 三模式下把人设+堆叠+规则包注入每条消息的 context（≤20000 字符），不依赖其他扩展",
-  "version": "3.1.3",
+  "version": "3.1.4",
   "publisher": "cniu6",
   "license": "Apache-2.0",
   "engines": {

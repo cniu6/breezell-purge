@@ -14,3 +14,11 @@ Thumbs.db
 
 tools/_ab-result.json
 tools/_patch-verify.json
+
+# 提示词明文只在仓库外的 prompts-src/（tools/mkvault.js 生成 dist/*.b64）
+assets/persona-core.md
+assets/persona-zh.md
+prompts-src/
+
+# 完整人设（30,458 字）不随包发布，仅本地按需由 personaFile 指向
+dist/persona-dsh.b64

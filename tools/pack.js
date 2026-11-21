@@ -21,6 +21,7 @@ add('[Content_Types].xml', Buffer.from(
   '<Default Extension="json" ContentType="application/json"/>' +
   '<Default Extension="js" ContentType="application/javascript"/>' +
   '<Default Extension="md" ContentType="text/markdown"/>' +
+  '<Default Extension="b64" ContentType="application/octet-stream"/>' +
   '<Default Extension="html" ContentType="text/html"/>' +
   '<Default Extension="png" ContentType="image/png"/>' +
   '<Default Extension="vsixmanifest" ContentType="text/xml"/></Types>', 'utf8'));
