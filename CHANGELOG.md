@@ -2,6 +2,14 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.7
+
+**适配宿主 1.4.67（底座 1.4.6）**
+
+- 现场：`hot-runtime\current.json` → `1.4.67 / 1.4.67-eedd2759e60c`，`previousVersion 1.4.66`，`bootAttempts 0`；offline 升到 `3.4.16`；workbench `34,002,147 B`。
+- 锚点核对（1.4.67 vs 1.4.66 无结构变化，仅偏移与局部变量）：base 白名单 @**2,828,101**；`hm-live` 形 B（状态对象 `k`、chatMode `c`）；`hm-gate` 形 A（`ot.push(…pSys(L):L)`）；命令桥形 B（回调 `q`、解析器 `_`）；审批 `approve-all` 7 处；主审批门 `MISS` 由「每调用门」兜底。
+- 结果：`tools/repatch-wb.js` 对 1.4.67 / 1.4.66 / install(app) 三根各一轮，全部 `✔ 就位`、`node --check OK`、校验和已同步；`patch-verify` **65/69 · ❌=0**（4 项 ➖ 属底座缺该特性）。
+- 教训：offline 重新解包运行时目录会让人工补丁整根消失（`bootAttempts` 归零、wb `mtime` 回到解包时间即判据）。热更新后必须三根全打，不能只打当前根 —— 回退到 `previousVersion` 时会用到旧根。
 ## 3.1.6
 
 **适配宿主 1.4.66（底座 1.4.6）**

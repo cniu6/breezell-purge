@@ -339,5 +339,44 @@ tools/patch-verify.js → 65/69   ❌=0
 
 注意：自愈复跑时日志会出现重复的「已打」行（白名单/live/命令桥各第二次），那是复跑过程的输出，不代表重复注入 —— 用 `tools/_marks.js` 数落点即可确认（每个标记应恰好 1 处）。
 
+## 17. 1.4.67 适配记录（2026-11-24 16:1x）
 
+| 项 | 值 |
+|---|---|
+| hot `current.json` | `1.4.67 / 1.4.67-eedd2759e60c` |
+| baseVersion | `1.4.6` |
+| previousVersion | `1.4.66` |
+| bootAttempts | `0` |
+| workbench | `34,002,147 B` |
+| offline 扩展 | `local.breezell-offline-3.4.16`（已自带 pSys/pTail 调用点：各 1 处） |
+| 插件 | `cniu6.breezell-purge-3.1.7` |
 
+### 锚点（三根逐一实打）
+
+| 补丁 | 形态 | 关键捕获 |
+|---|---|---|
+| F30 base 白名单 | 明文数组 | `@2,828,101`（install `@2,814,595`） |
+| hm-live | **形 B** | 状态对象 `k`、chatMode `c` |
+| hm-gate | **形 A** | `ot.push(globalThis.BreezellOffline&&…pSys(L):L)` |
+| 命令桥 | **形 B** | 回调 `q`、解析器 `_`（install 回调 `$`） |
+| 审批全放行 | 明文 + 正则 | `approve-all` 共 **7** 处；主审批门 MISS → 由「每调用门」`!1&&!mt` 兜底 |
+
+### 落点计数（`tools/marks.js`）
+
+```json
+{ "hmLive": 1, "hmGate": 1, "cmdBridge": 1, "approveAll": 7 }
+```
+
+### 验收
+
+```text
+patch-verify  →  65/69  ❌=0   （4 项 ➖：底座 1.4.6 无对应特性）
+node --check  →  OK（三根）
+校验和        →  已写回 product.json（wb sha256b64 前 12 位随根不同）
+```
+
+### 踩坑记录
+
+1. **offline 重解包会清空人工补丁**：`bootAttempts` 归零 + wb `mtime` 回到解包时刻（如 `13:20:50`）+ `BreezellOffline` 计数 0，即判定「整根被换回原始」。此时必须先启动一次让 offline 打完自己的 `pSys` 调用点，再跑 `repatch-wb.js`，否则 `hm-gate` 必 MISS（锚点还不存在）。
+2. **三根都要打**：`previousVersion` 回退时会用旧根；只打当前根会在回退后失效。
+3. 补丁后立刻 `node tools/marks.js <root>` 计数，别信日志里的「已打」——自愈复跑会重复打印。
