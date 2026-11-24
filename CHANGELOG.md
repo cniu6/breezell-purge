@@ -2,6 +2,21 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.6
+
+**适配宿主 1.4.66（底座 1.4.6）**
+
+- 现场：`hot-runtime\current.json` → `1.4.66 / 1.4.66-301a6063c144`，`previousVersion 1.4.64`；workbench `34,002,619 B`（比 1.4.64 大 138,341 B）；`patch-verify` 首轮 `51/69 · ❌=14`。
+- 锚点核对（1.4.66 vs 1.4.64）：结构几乎同形，只是局部变量重命名 ——
+  - base 白名单 `["normal","plan","analyze","agent"]` @**2,828,098** → 补 `entanglement`。
+  - `hm-live` 形态 B（状态对象 `k`、chatMode `c`）。
+  - `hm-gate` 形 A（`ot.push(…pSys(L):L)` 里的三元片段）。
+  - 命令桥形态 B（回调 **`q`**、解析器 `_`；1.4.64 是 `K`）。
+  - 审批门变量名再换一轮：`gt=!!…autoApprove[ut], ht=!gt&&!!ot&&EPi(...), St=ht&&_isDangerousTerminalText(...), mt=gt||ht&&!St, ft=St?"allowedCommand":void 0` → 由「每调用门」闭成 `if(/*bzl-offline:approve-all*/!1&&!mt)`；`_isDangerousTerminalText`、`autoApproveHeld`、`notifyPlanApproval`、`subagentModelAuto` 全部照旧存在，共 **7 处** `approve-all`。
+- 工具侧观察：首次 `hm-gate` 又报 MISS，自愈复跑后命中（同 1.4.64 的时序现象）；复跑日志里 `F30 白名单 / hm-live / 命令桥` 会再各打印一次「已打」，用 `tools/_marks.js` 复核实测落点数量为 **每标记 1 处、approve-all 7 处**，`node --check OK` —— 属日志噪声，没有重复注入。
+- 结果：`patch-verify` **65/69 · ❌=0**；三根校验和全 `match`；真机 `selftest 3.1.6 · arm ok · host ok(1.4.66) · personaSrc vault · bench 8/8`。
+- `breezell.supportedHost.tested` 增列 `1.4.66`。
+
 ## 3.1.5
 
 **适配宿主 1.4.64（底座 1.4.6）+ 重打脚本自愈**

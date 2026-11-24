@@ -303,4 +303,41 @@ tools/patch-verify.js → 65/69   ❌=0（4 项 ➖：1.4.64 无 _editApprovalFl
 
 **这次学到的坑**：1.4.64 新 bundle 上出现「第一轮 `hm-gate: MISS`、第二轮同一条正则就命中」的时序现象。`repatch-wb.js` 已加自愈：跑完五个补丁后重读文件核对 4 个标记，缺任何一个就自动复跑一轮（`BZL_REPATCH_RETRY=1` 防死循环），末尾打印 `✔ 全部就位` 或 `⚠ 仍缺 …`。以后只看这行就能判断要不要人工介入。
 
+## 16. 1.4.66 适配记录（2026-11-24）
+
+热更新到 `1.4.66-301a6063c144`（底座 **1.4.6**，`previousVersion 1.4.64`）。workbench `34,002,619 B`（比 1.4.64 大 `138,341 B`）；补丁全丢（`patch-verify` 首轮 `51/69 · ❌=14`）。
+
+结构上 1.4.66 与 1.4.64 几乎同形，差异集中在局部变量名：
+
+| 补丁 | 1.4.64 | 1.4.66 | 结果 |
+|---|---|---|---|
+| base 白名单 | `["normal","plan","analyze","agent"]` @2821846 | 同形 @**2,828,098** | ✔ 命中 |
+| hm-live | 形态 B（`k` / `c`） | 同形（`k` / `c`） | ✔ 形态 B |
+| hm-gate | 形 A（`ot.push(…pSys(L):L)`） | 同形（`ot` / `L`） | ✔ 形 A（自愈复跑命中） |
+| 命令桥 | 形态 B（回调 `K`、解析器 `_`） | 形态 B（回调 **`q`**、解析器 `_`） | ✔ 变量全捕获，无需改代码 |
+| 审批门 | `dt=pt||Ot&&!Tt,Dt=…` | `mt=gt||ht&&!St, ft=St?"allowedCommand":void 0`（前面 `gt=!!…autoApprove[ut]`、`ht=…EPi(...)`） | 主门不单独匹配，由「每调用门」闭掉 |
+| 每调用门 | `if(!dt)return …` | `if(!mt)return …` | ✔ `if(/*bzl-offline:approve-all*/!1&&!mt)` |
+| 其它审批项 | 危险命令/批量门/计划卡片/计划切换/子代理/agent_mode/团队 | 全部同形 | ✔ 共 7 处 `approve-all` |
+
+重打结果：
+
+```text
+1.4.66-301a6063c144 → 白名单 @2828098 | hm-live 形B(k,c) | hm-gate 形A(ot,L) | 命令桥 形B(q,_)
+                     → 审批: 每调用门 已打 | 批量门 已打1 | 计划卡片(UI) 已打1 | 计划切换 已打1
+                              agent_mode 已打1 | 子代理自动 已打1 | 团队 已打 | 主审批门 MISS（由每调用门兜底）
+                     → 校验和 n5ltczs2+JoiG5 → ebXRXh6n+KveqB | node --check OK
+tools/patch-verify.js → 65/69   ❌=0
+落点计数（tools/_marks.js）→ hm-live 1 · hm-gate 1 · cmd 1 · approve-all 7
+```
+
+真机自检（重启后）：
+
+```json
+{ "version": "3.1.6", "armWhy": "ok", "benchOk": 8, "personaSrc": "vault", "personaLen": 16833,
+  "host": { "version": "1.4.66", "level": "ok", "supported": true } }
+```
+
+注意：自愈复跑时日志会出现重复的「已打」行（白名单/live/命令桥各第二次），那是复跑过程的输出，不代表重复注入 —— 用 `tools/_marks.js` 数落点即可确认（每个标记应恰好 1 处）。
+
+
 
