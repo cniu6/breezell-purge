@@ -2,6 +2,14 @@
 
 所有改动按「真因 → 修法」记录，方便对着宿主升级时回溯。
 
+## 3.1.8
+
+**适配宿主 1.4.691（底座 1.4.6）**
+
+- 现场：`hot-runtime\current.json` → `1.4.691 / 1.4.691-9767c4141a05`，`previousVersion 1.4.67`，`bootAttempts 0`；workbench `34,036,458 B`（offline 3.4.16 打完自身锚点后 `34,043,616 B`）。
+- 关键坑：新 wb 解包后 `BreezellOffline.pSys?` 计数为 **0**，直接 `repatch-wb.js` 会让 `hm-gate` MISS。必须先启动一次让 offline 写出 `pSys`/`pTail` 调用点与 `pSys:function` 定义，再重打。
+- 锚点（1.4.691）：白名单、hm-live 形 B（状态对象 `k`、chatMode `c`）、hm-gate 形 A、命令桥形 B（回调 `q`、解析器 `_`）；审批 `approve-all` 7 处（主审批门 MISS 由「每调用门」兜底），与 1.4.67 同形。
+- 结果：三根（1.4.691 / 1.4.67 / install 底座）全 `✔ 就位`；`marks 1/1/1/7`、`node --check OK`、`patch-verify 65/69 · ❌=0`。
 ## 3.1.7
 
 **适配宿主 1.4.67（底座 1.4.6）**

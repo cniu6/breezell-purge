@@ -380,3 +380,27 @@ node --check  →  OK（三根）
 1. **offline 重解包会清空人工补丁**：`bootAttempts` 归零 + wb `mtime` 回到解包时刻（如 `13:20:50`）+ `BreezellOffline` 计数 0，即判定「整根被换回原始」。此时必须先启动一次让 offline 打完自己的 `pSys` 调用点，再跑 `repatch-wb.js`，否则 `hm-gate` 必 MISS（锚点还不存在）。
 2. **三根都要打**：`previousVersion` 回退时会用旧根；只打当前根会在回退后失效。
 3. 补丁后立刻 `node tools/marks.js <root>` 计数，别信日志里的「已打」——自愈复跑会重复打印。
+
+## 18. 1.4.691 适配记录（2026-11-26）
+
+| 项 | 值 |
+|---|---|
+| hot `current.json` | `1.4.691 / 1.4.691-9767c4141a05` |
+| baseVersion / previousVersion | `1.4.6` / `1.4.67` |
+| workbench | `34,036,458 B`（解包原始）→ `34,043,616 B`（offline 锚点写入后） |
+| offline 扩展 | `local.breezell-offline-3.4.16` |
+| 插件 | `cniu6.breezell-purge-3.1.8` |
+
+### 踩坑：offline 锚点先行
+
+新 wb 解包后 `BreezellOffline.pSys?` = **0**。直接 `repatch-wb.js` 会导致 `hm-gate` MISS（锚点还不存在）。
+正确顺序：重启 Breezell → 等 offline 写盘（`BreezellOffline.pSys?` = 1、`pTail?` = 1、`pSys:function` = 1）→ 再跑 `repatch-wb.js`。
+
+### 锚点与验收
+
+```text
+hm-live 形B(k/c) · hm-gate 形A · 命令桥形B(q/_) · approve-all 7 处
+marks: {hmLive:1, hmGate:1, cmdBridge:1, approveAll:7}  ✔
+patch-verify: 65/69  ❌=0
+三根：1.4.691 / 1.4.67 / install(app)  均 ✔ 就位 · node --check OK · 校验和同步
+```
